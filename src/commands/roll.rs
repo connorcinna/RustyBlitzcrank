@@ -1,6 +1,6 @@
 use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::command::CommandOptionType;
-use serenity::model::prelude::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
+use serenity::model::application::command::CommandOptionType;
+use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
 use rand::Rng;
 
 pub fn run(options: &[CommandDataOption]) -> String {

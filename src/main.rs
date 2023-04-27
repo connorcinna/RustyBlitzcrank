@@ -4,37 +4,16 @@ extern crate dotenv;
 use dotenv::dotenv;
 
 use serenity::async_trait;
-use serenity::model::application::command::Command;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
-use serenity::model::guild;
+//use serenity::model::guild;
 use serenity::model::id::GuildId;
 use serenity::model::id::CommandId;
 use serenity::prelude::*;
 
 
 use std::env;
-use std::fs;
 
-macro_rules! command_match_left {
-    ($name: ident) => {
-        stringify!($name);
-    }
-}
-macro_rules! command_match_right {
-
-}
-macro_rules! command_match {
-    ($name:expr) => {
-        $name as String => commands::$name::run(&command.data.options)
-    };
-}
-const command_filenames: Vec<String> = fs::read_dir("src/commands").unwrap()
-    .filter_map(|result: Result<fs::DirEntry, std::io::Error>| result.ok())
-    .map(|filename: fs::DirEntry| -> String {
-        filename.path().file_stem().unwrap().to_str().unwrap().to_owned()
-    }) 
-    .collect::<Vec<_>>();
 
 struct Handler;
 
@@ -45,9 +24,14 @@ impl EventHandler for Handler {
 
             let content = match command.data.name.as_str() {
                 "roll" => commands::roll::run(&command.data.options),
+                "gif" => commands::gif::run(&command.data.options).await, //on any commands that need async to run, use await
+//                "name" => commands::name::run(&command.data.options),
+                "search" => commands::search::run(&command.data.options).await,
+                "vid" => commands::vid::run(&command.data.options).await,
+                "jerma" => commands::jerma::run(),
+//                "help" => commands::help::run(&command.data.options),
                 _ => "Not implemented".to_string(),
             };
-
             if let Err(why) = command
                 .create_interaction_response(&ctx.http, |response| {
                     response
@@ -64,13 +48,6 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
 
-//        let command_filenames: Vec<String> = fs::read_dir("src/commands").unwrap()
-//            .filter_map(|result: Result<fs::DirEntry, std::io::Error>| result.ok())
-//            .map(|filename: fs::DirEntry| -> String {
-//                filename.path().file_stem().unwrap().to_str().unwrap().to_owned()
-//            }) 
-//            .collect::<Vec<_>>();
-
 
         let guild_id = GuildId(
             env::var("GUILD_ID")
@@ -78,11 +55,16 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-
-
+        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1100989549800333392)).await.expect("Expected commandID");
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::roll::register(command))
+                .create_application_command(|command| commands::gif::register(command))
+//                .create_application_command(|command| commands::name::register(command))
+                .create_application_command(|command| commands::search::register(command))
+                .create_application_command(|command| commands::vid::register(command))
+                .create_application_command(|command| commands::jerma::register(command))
+//                .create_application_command(|command| commands::help::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -92,7 +74,6 @@ impl EventHandler for Handler {
 //        })
 //        .await;
         
-       //TODO: programmatically get name of all commands based on .rs file extension and register them similar to above 
     }
 }
 
