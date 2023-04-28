@@ -25,7 +25,7 @@ impl EventHandler for Handler {
             let content = match command.data.name.as_str() {
                 "roll" => commands::roll::run(&command.data.options),
                 "gif" => commands::gif::run(&command.data.options).await, //on any commands that need async to run, use await
-//                "name" => commands::name::run(&command.data.options),
+                "name" => commands::name::run(),
                 "search" => commands::search::run(&command.data.options).await,
                 "vid" => commands::vid::run(&command.data.options).await,
                 "jerma" => commands::jerma::run(),
@@ -55,12 +55,12 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1100989549800333392)).await.expect("Expected commandID");
+        //GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1101323850219782247)).await.expect("Expected commandID");
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::roll::register(command))
                 .create_application_command(|command| commands::gif::register(command))
-//                .create_application_command(|command| commands::name::register(command))
+                .create_application_command(|command| commands::name::register(command))
                 .create_application_command(|command| commands::search::register(command))
                 .create_application_command(|command| commands::vid::register(command))
                 .create_application_command(|command| commands::jerma::register(command))
