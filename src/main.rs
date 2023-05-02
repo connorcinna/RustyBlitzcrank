@@ -1,15 +1,26 @@
 mod commands;
 
 extern crate dotenv;
-use dotenv::dotenv;
 
+use dotenv::dotenv;
+use cron::Schedule;
+use chrono::{Local, DateTime};
+
+use std::str::FromStr;
+
+use serenity::model::prelude::Activity;
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
+use serenity::model::channel::Message;
 //use serenity::model::guild;
 use serenity::model::id::GuildId;
 use serenity::model::id::CommandId;
 use serenity::prelude::*;
+
+use twitter_v2::{TwitterApi, query};
+use twitter_v2::authorization::{Oauth2Token, BearerToken};
+use twitter_v2::query::{TweetField, UserField, MediaField, TweetExpansion};
 
 
 use std::env;
@@ -19,6 +30,22 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
+    async fn message(&self, ctx: Context, msg: Message) {
+        println!("Reached Message Handler");
+        let idx_twitter_link = msg.content.find("https://twitter.com");
+        if let Some(some_idx) = idx_twitter_link {
+            let media_type = vxtwitter(&msg).await;
+            if media_type == "Video" {
+                let mut final_link = msg.content.to_owned();
+                let prepend_str = format!("Posted by {}\n", msg.author.name);
+                final_link.insert_str(some_idx+8, "vx"); //guaranteed to not cause buffer issues, already checked string size
+                final_link.insert_str(0, &prepend_str);
+                msg.channel_id.say(&ctx.http, final_link).await.unwrap();
+                msg.delete(&ctx.http).await.expect("Unable to delete message");
+            }
+        }
+    } 
+
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
 
@@ -45,8 +72,10 @@ impl EventHandler for Handler {
         }
     }
 
+    
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
+        ctx.set_activity(Activity::watching("Jerma985")).await;
 
 
         let guild_id = GuildId(
@@ -76,7 +105,29 @@ impl EventHandler for Handler {
         
     }
 }
-
+fn friday() {
+    
+}
+async fn vxtwitter(rcv_message: &Message) -> String {
+    println!("Entering vxtwitter");
+    let message_array: Vec<&str> = rcv_message.content.split("/").collect();
+    let tweet_id = message_array[message_array.len()-1];
+    println!("{tweet_id}");
+    let auth = BearerToken::new(env::var("TWITTER_BEARER_TOKEN").expect("Expected Twitter OAuth BearerToken"));
+    let tweet = TwitterApi::new(auth)
+        .get_tweet(tweet_id.parse::<u64>().unwrap())
+        .media_fields([MediaField::Type, MediaField::Url])
+        .expansions([TweetExpansion::AttachmentsMediaKeys])
+        .send()
+        .await
+        .unwrap()
+        //.into_data()
+        .into_includes()
+        .expect("This tweet does not exist");
+    println!("Finished grabbing tweet");
+    let tweet_media_type = &tweet.media.unwrap()[0].kind;
+    format!("{:?}", *tweet_media_type)
+}
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -84,7 +135,7 @@ async fn main() {
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
 
     // Build our client.
-    let mut client = Client::builder(token, GatewayIntents::empty())
+    let mut client = Client::builder(token, GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES)
         .event_handler(Handler)
         .await
         .expect("Error creating client");
@@ -95,6 +146,11 @@ async fn main() {
     // exponential backoff until it reconnects.
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
+    }
+    let schedule_str = "0 0   10   *   *   Fri *";
+    let schedule = Schedule::from_str(schedule_str).unwrap();
+    for datetime in schedule.upcoming(Local) {
+        friday();
     }
 
 }
