@@ -2,7 +2,7 @@
 
 A Discord bot written in Rust using https://github.com/serenity-rs/serenity.
 
-![RustyBlitzcrank logo][https://github.com/connorcinna/RustyBlitzcrank/blob/master/rb.webp]
+![RustyBlitzcrank logo](https://github.com/connorcinna/RustyBlitzcrank/blob/master/rb.webp)
 
 ## Commands
 -`/help` Takes you to this readme  
