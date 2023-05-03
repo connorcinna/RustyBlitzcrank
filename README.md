@@ -11,4 +11,4 @@ A Discord bot written in Rust using https://github.com/serenity-rs/serenity.
 -`/search *word*` Queries a custom Google search and prints the first image returned.
 -`/roll *number*` Returns a random number between 1 and the argument provided.
 -`/name` Returns a random name made of two random [words] and padded with numbers if the words combined are less than 16 characters in length.
--'/jerma' :)
+-`/jerma` :)

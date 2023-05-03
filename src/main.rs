@@ -7,8 +7,10 @@ use cron::Schedule;
 use chrono::{Local, DateTime};
 
 use std::str::FromStr;
+use std::sync::Arc;
 
 use serenity::model::prelude::Activity;
+use serenity::http::Http;
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
@@ -105,7 +107,8 @@ impl EventHandler for Handler {
         
     }
 }
-fn friday() {
+fn friday(datetime: DateTime<Local>) {
+    println!("It's friday: {}", datetime);
     
 }
 async fn vxtwitter(rcv_message: &Message) -> String {
@@ -121,7 +124,6 @@ async fn vxtwitter(rcv_message: &Message) -> String {
         .send()
         .await
         .unwrap()
-        //.into_data()
         .into_includes()
         .expect("This tweet does not exist");
     println!("Finished grabbing tweet");
@@ -149,8 +151,9 @@ async fn main() {
     }
     let schedule_str = "0 0   10   *   *   Fri *";
     let schedule = Schedule::from_str(schedule_str).unwrap();
-    for datetime in schedule.upcoming(Local) {
-        friday();
+    for datetime in schedule.upcoming(Local).take(10) {
+        println!("-> {}", datetime);
+        friday(datetime);
     }
 
 }

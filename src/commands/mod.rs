@@ -4,3 +4,4 @@ pub mod jerma;
 pub mod search;
 pub mod vid;
 pub mod name;
+pub mod help;
