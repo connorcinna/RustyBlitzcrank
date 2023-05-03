@@ -1,8 +1,6 @@
 use serenity::builder::CreateApplicationCommand;
-use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
-
-pub fn run(options: &[CommandDataOption]) -> String {
-
+pub fn run() -> String {
+    String::from("https://github.com/connorcinna/RustyBlitzcrank#readme")
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {

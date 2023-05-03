@@ -7,22 +7,18 @@ use cron::Schedule;
 use chrono::{Local, DateTime};
 
 use std::str::FromStr;
-use std::sync::Arc;
 
 use serenity::model::prelude::Activity;
-use serenity::http::Http;
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
-//use serenity::model::guild;
 use serenity::model::id::GuildId;
-use serenity::model::id::CommandId;
 use serenity::prelude::*;
 
-use twitter_v2::{TwitterApi, query};
-use twitter_v2::authorization::{Oauth2Token, BearerToken};
-use twitter_v2::query::{TweetField, UserField, MediaField, TweetExpansion};
+use twitter_v2::TwitterApi;
+use twitter_v2::authorization::BearerToken;
+use twitter_v2::query::{MediaField, TweetExpansion};
 
 
 use std::env;
@@ -58,7 +54,7 @@ impl EventHandler for Handler {
                 "search" => commands::search::run(&command.data.options).await,
                 "vid" => commands::vid::run(&command.data.options).await,
                 "jerma" => commands::jerma::run(),
-//                "help" => commands::help::run(&command.data.options),
+                "help" => commands::help::run(),
                 _ => "Not implemented".to_string(),
             };
             if let Err(why) = command
@@ -95,7 +91,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::search::register(command))
                 .create_application_command(|command| commands::vid::register(command))
                 .create_application_command(|command| commands::jerma::register(command))
-//                .create_application_command(|command| commands::help::register(command))
+                .create_application_command(|command| commands::help::register(command))
         })
         .await
         .expect("Could not add the guild command");
