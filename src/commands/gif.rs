@@ -38,7 +38,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         .unwrap()
                         .to_string();
                     let url = &url[1..url.len()-1];
-                    format!("{}", url)
+                    format!("Searching for gif: {}\n{}", query, url)
                 },
                 reqwest::StatusCode::UNAUTHORIZED => {
                     format!("Error authorizing request")
