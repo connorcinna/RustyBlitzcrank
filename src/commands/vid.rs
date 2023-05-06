@@ -36,7 +36,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .unwrap()
             .to_string();
         println!("{}", result);
-        format!("Searching for video: {}\n https://www.youtube.com/watch?v={}", query, &result[1..result.len()-1])
+        format!("{}\nhttps://www.youtube.com/watch?v={}", query, &result[1..result.len()-1])
     }
     else {
         String::from("Fuck")

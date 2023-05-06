@@ -34,7 +34,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .and_then(|value| value.get("link"))
             .unwrap()
             .to_string();
-        format!("Searching for image: {}\n{}", query, &result[1..result.len()-1])
+        format!("{}\n{}", query, &result[1..result.len()-1])
     }
     else {
         String::from("Fuck")

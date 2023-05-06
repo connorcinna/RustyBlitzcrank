@@ -15,6 +15,7 @@ use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
+use serenity::model::prelude::CommandId;
 
 use twitter_v2::TwitterApi;
 use twitter_v2::authorization::BearerToken;
@@ -55,6 +56,7 @@ impl EventHandler for Handler {
                 "vid" => commands::vid::run(&command.data.options).await,
                 "jerma" => commands::jerma::run(),
                 "help" => commands::help::run(),
+                "gpt" => commands::gpt::run(&command.data.options).await,
                 _ => "Not implemented".to_string(),
             };
             if let Err(why) = command
@@ -82,7 +84,7 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-        //GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1101323850219782247)).await.expect("Expected commandID");
+        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1104238807907323968)).await.expect("Expected commandID");
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::roll::register(command))
@@ -92,6 +94,8 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::vid::register(command))
                 .create_application_command(|command| commands::jerma::register(command))
                 .create_application_command(|command| commands::help::register(command))
+                .create_application_command(|command| commands::gpt::register(command))
+
         })
         .await
         .expect("Could not add the guild command");
