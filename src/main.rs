@@ -84,7 +84,7 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1104238807907323968)).await.expect("Expected commandID");
+        //GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1104238807907323968)).await.expect("Expected commandID");
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::roll::register(command))
