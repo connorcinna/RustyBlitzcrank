@@ -30,18 +30,15 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        println!("Reached Message Handler");
+
+        let idx_x_link = msg.content.find("https://x.com");
         let idx_twitter_link = msg.content.find("https://twitter.com");
-        if let Some(some_idx) = idx_twitter_link {
-            let media_type = vxtwitter(&msg).await;
-            if media_type == "Video" {
-                let mut final_link = msg.content.to_owned();
-                let prepend_str = format!("Posted by {}\n", msg.author.name);
-                final_link.insert_str(some_idx+8, "vx"); //guaranteed to not cause buffer issues, already checked string size
-                final_link.insert_str(0, &prepend_str);
-                msg.channel_id.say(&ctx.http, final_link).await.unwrap();
-                msg.delete(&ctx.http).await.expect("Unable to delete message");
-            }
+        //have to pay for twitter api now so lol
+        if let Some(some_idx) = idx_twitter_link { 
+            vxtwitter(ctx, &msg, (some_idx, "twitter")).await;
+        }
+        else if let Some(some_idx) = idx_x_link {
+            vxtwitter(ctx, &msg, (some_idx, "x")).await;     
         }
     } 
 
@@ -111,25 +108,25 @@ fn friday(datetime: DateTime<Local>) {
     println!("It's friday: {}", datetime);
     
 }
-async fn vxtwitter(rcv_message: &Message) -> String {
-    println!("Entering vxtwitter");
-    let message_array: Vec<&str> = rcv_message.content.split("/").collect();
-    let tweet_id = message_array[message_array.len()-1];
-    println!("{tweet_id}");
-    let auth = BearerToken::new(env::var("TWITTER_BEARER_TOKEN").expect("Expected Twitter OAuth BearerToken"));
-    let tweet = TwitterApi::new(auth)
-        .get_tweet(tweet_id.parse::<u64>().unwrap())
-        .media_fields([MediaField::Type, MediaField::Url])
-        .expansions([TweetExpansion::AttachmentsMediaKeys])
-        .send()
-        .await
-        .unwrap()
-        .into_includes()
-        .expect("This tweet does not exist");
-    println!("Finished grabbing tweet");
-    let tweet_media_type = &tweet.media.unwrap()[0].kind;
-    format!("{:?}", *tweet_media_type)
+
+//kind of dumb i have to pass some_idx as Option, when I already check it's type above
+async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
+    let mut final_link = msg.content.to_owned();
+    let prepend_str = format!("Posted by {}\n", msg.author.name);
+    if some_idx.1 == "twitter" { //twitter link
+        final_link.insert_str(some_idx.0+8, "c.vx"); //guaranteed to not panic, already checked string size
+    }
+    else { //x link
+        final_link.insert_str(some_idx.0+8, "c.v"); 
+        final_link.insert_str(some_idx.0+12, "twitter"); 
+    }
+    final_link.insert_str(0, &prepend_str);
+
+    msg.channel_id.say(&ctx.http, final_link).await.unwrap();
+    msg.delete(&ctx.http).await.expect("Unable to delete message");
+    
 }
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
