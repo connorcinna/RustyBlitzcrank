@@ -31,6 +31,18 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .unwrap();
         let json_result: Value = serde_json::from_str(&response).unwrap();
         println!("json_result: {json_result}");
+
+        match json_result.get("totalResults") {
+            Some(result_num) => {
+                if result_num == "0" {
+                    return String::from("Fuck");
+                }
+                //else, normal case
+            }
+            None => {
+                return String::from("Fuck");
+            }
+        }
         let result = json_result.get("items")
             .and_then(|value| value.get(0))
             .and_then(|value| value.get("link"))
@@ -38,6 +50,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .to_string();
         format!("\n{}", &result[1..result.len()-1])
     }
+    //dont think this is ever reached?
     else {
         String::from("Fuck")
     }
