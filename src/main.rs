@@ -5,6 +5,7 @@ extern crate dotenv;
 use dotenv::dotenv;
 use cron::Schedule;
 use chrono::{Local, DateTime};
+use serenity::model::prelude::command::Command;
 
 use std::str::FromStr;
 
@@ -15,11 +16,8 @@ use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
-use serenity::model::prelude::CommandId;
+// use serenity::model::prelude::CommandId;
 
-use twitter_v2::TwitterApi;
-use twitter_v2::authorization::BearerToken;
-use twitter_v2::query::{MediaField, TweetExpansion};
 
 
 use std::env;
@@ -53,7 +51,7 @@ impl EventHandler for Handler {
                 "vid" => commands::vid::run(&command.data.options).await,
                 "jerma" => commands::jerma::run(),
                 "help" => commands::help::run(),
-                "gpt" => commands::gpt::run(&command.data.options).await,
+                "song" => commands::song::run(&command.data.options).await,
                 _ => "Not implemented".to_string(),
             };
             if let Err(why) = command
@@ -91,16 +89,16 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::vid::register(command))
                 .create_application_command(|command| commands::jerma::register(command))
                 .create_application_command(|command| commands::help::register(command))
-                .create_application_command(|command| commands::gpt::register(command))
+                .create_application_command(|command| commands::song::register(command))
 
         })
         .await
         .expect("Could not add the guild command");
 
-//        let global_command = Command::create_global_application_command(&ctx.http, |command| {
-//            commands::roll::register(command)
-//        })
-//        .await;
+       let global_command = Command::create_global_application_command(&ctx.http, |command| {
+           commands::song::register(command)
+       })
+       .await;
         
     }
 }
