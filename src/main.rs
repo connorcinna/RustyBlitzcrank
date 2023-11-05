@@ -9,19 +9,17 @@ use serenity::model::prelude::command::Command;
 
 use std::str::FromStr;
 
-use serenity::model::prelude::Activity;
+use serenity::model::prelude::{Activity, CommandId};
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
-// use serenity::model::prelude::CommandId;
-
-
 
 use std::env;
-
+//TODO: figure out how to use deref() to let commands take longer
+//TODO: song command exists twice in jef house, figure out why / delete one of them, they both work
 
 struct Handler;
 
@@ -79,7 +77,8 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-        //GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1104238807907323968)).await.expect("Expected commandID");
+        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1170526580427206656)).await.expect("Expected commandID");
+        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1170176226376286258)).await.expect("Expected commandID");
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::roll::register(command))
@@ -90,15 +89,14 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::jerma::register(command))
                 .create_application_command(|command| commands::help::register(command))
                 .create_application_command(|command| commands::song::register(command))
-
         })
         .await
         .expect("Could not add the guild command");
-
+/*
        let global_command = Command::create_global_application_command(&ctx.http, |command| {
            commands::song::register(command)
-       })
-       .await;
+       })*/
+       //.await;
         
     }
 }
