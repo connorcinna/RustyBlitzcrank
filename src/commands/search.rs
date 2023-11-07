@@ -20,7 +20,6 @@ pub async fn run(options: &[CommandDataOption]) -> String {
     if let CommandDataOptionValue::String(query) = option {
         let client = reqwest::Client::new();
         let url = format!("https://www.googleapis.com/customsearch/v1?key=AIzaSyCDvi2YxuEsz5uxR1e1h6gq2iF9Ly_WPZU&cx=71446e05228ee4314&q={}&searchType=image&fileType=jpg&alt=json&num=1", query);
-        println!("url: {url}");
         let response = client
             .get(url)
             .send()
@@ -30,11 +29,16 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .await
             .unwrap();
         let json_result: Value = serde_json::from_str(&response).unwrap();
-        println!("json_result: {json_result}");
-
-        match json_result.get("totalResults") {
+        println!("json_result: {}", serde_json::to_string_pretty(&json_result).unwrap());
+        //i guess google changed their API result payload? it works now
+        match json_result.get("queries")
+            .and_then(|value| value.get("nextPage"))
+            .and_then(|value| value.get(0))
+            .and_then(|value| value.get("totalResults")) {
             Some(result_num) => {
+                println!("Some(result_num");
                 if result_num == "0" {
+                    //TODO: change this to embed that funny picture of blitzcrank
                     return String::from("Fuck");
                 }
                 //else, normal case

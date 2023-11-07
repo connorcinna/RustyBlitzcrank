@@ -5,7 +5,7 @@ extern crate dotenv;
 use dotenv::dotenv;
 use cron::Schedule;
 use chrono::{Local, DateTime};
-use serenity::model::prelude::command::Command;
+//use serenity::model::prelude::command::Command;
 
 use std::str::FromStr;
 
@@ -18,8 +18,7 @@ use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
 use std::env;
-//TODO: figure out how to use deref() to let commands take longer
-//TODO: song command exists twice in jef house, figure out why / delete one of them, they both work
+//TODO: figure out how to use defer() to let commands take longer
 
 struct Handler;
 
@@ -40,19 +39,29 @@ impl EventHandler for Handler {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
-
+            //google search now takes more than 3 seconds a lot of the time, have to defer it
+            if command.data.name.as_str() == "search" {
+                command.create_interaction_response(&ctx.http, |response| {
+                    response
+                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
+                }).await.unwrap();
+                let res = commands::search::run(&command.data.options).await;
+                command.edit_original_interaction_response(&ctx.http, |response| {
+                    response.content(res)
+                }).await.unwrap();
+            }
             let content = match command.data.name.as_str() {
                 "roll" => commands::roll::run(&command.data.options),
-                "gif" => commands::gif::run(&command.data.options).await, //on any commands that need async to run, use await
+                "gif" => commands::gif::run(&command.data.options).await, 
                 "name" => commands::name::run(),
-                "search" => commands::search::run(&command.data.options).await,
                 "vid" => commands::vid::run(&command.data.options).await,
                 "jerma" => commands::jerma::run(),
                 "help" => commands::help::run(),
                 "song" => commands::song::run(&command.data.options).await,
                 _ => "Not implemented".to_string(),
             };
-            if let Err(why) = command
+            if let Err(e) = command
                 .create_interaction_response(&ctx.http, |response| {
                     response
                         .kind(InteractionResponseType::ChannelMessageWithSource)
@@ -60,7 +69,7 @@ impl EventHandler for Handler {
                 })
                 .await
             {
-                println!("Cannot respond to slash command: {}", why);
+                println!("Cannot respond to slash command: {}", e);
             }
         }
     }
