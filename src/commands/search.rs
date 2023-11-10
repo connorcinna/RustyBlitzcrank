@@ -38,7 +38,6 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             Some(result_num) => {
                 println!("Some(result_num");
                 if result_num == "0" {
-                    //TODO: change this to embed that funny picture of blitzcrank
                     return String::from("Fuck");
                 }
                 //else, normal case

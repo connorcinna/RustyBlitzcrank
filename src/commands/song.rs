@@ -1,5 +1,3 @@
-use std::println;
-
 use rspotify::model::SearchResult;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::command::CommandOptionType;
@@ -16,7 +14,6 @@ pub async fn run(options: &[CommandDataOption]) -> String {
 
     if let CommandDataOptionValue::String(query) = option {
     	let creds = Credentials::from_env().unwrap();
-    	println!("Credentials ID: {}, Credentials Secret: {:?}", creds.id, creds.secret);
 		let spotify = ClientCredsSpotify::new(creds);
 		spotify.request_token().await.unwrap();
 		let song = spotify.search(
