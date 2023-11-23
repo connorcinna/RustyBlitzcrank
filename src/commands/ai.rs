@@ -35,7 +35,9 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         {"category": "HARM_CATEGORY_SEXUAL", "threshold":4},
                         {"category": "HARM_CATEGORY_MEDICAL", "threshold":4},
                         {"category": "HARM_CATEGORY_DANGEROUS", "threshold":4},
-                    ]
+                    ],
+                    "temperature" : 1,
+                    "max_output_tokens": 2048,
                 }))
                 .send()
                 .await
@@ -49,7 +51,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         .and_then(|value| value.get("output"))
                         .unwrap()
                         .to_string();
-                    let output = output.replace("\\n\\n", " ");
+                    let output = output.replace("\\n", " ");
                     let output = &output[1..output.len()-1];
                     format!("\n{}", output)
                     //output
