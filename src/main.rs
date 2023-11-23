@@ -37,11 +37,11 @@ impl EventHandler for Handler {
         }
     } 
 
+    //TODO: clean up this method by creating a function that can be called for all API calls that might take a while to run
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
             //google search now takes more than 3 seconds a lot of the time, have to defer it
             //thats why there's this special case here
-            //TODO: clean this up and put it in a function or something
             if command.data.name.as_str() == "search" {
                 command.create_interaction_response(&ctx.http, |response| {
                     response
@@ -67,27 +67,41 @@ impl EventHandler for Handler {
                     }).await.unwrap();
                 }
             }
-            let content = match command.data.name.as_str() {
-                "roll" => commands::roll::run(&command.data.options),
-                "gif" => commands::gif::run(&command.data.options).await, 
-                "name" => commands::name::run(),
-                "vid" => commands::vid::run(&command.data.options).await,
-                "jerma" => commands::jerma::run(),
-                "help" => commands::help::run(),
-                "song" => commands::song::run(&command.data.options).await,
-                "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options, command.channel_id).await,
-                _ => "Not implemented".to_string(),
-            };
-            if let Err(e) = command
-                .create_interaction_response(&ctx.http, |response| {
+            else if command.data.name.as_str() == "ai" {
+                command.create_interaction_response(&ctx.http, |response| {
                     response
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(content))
-                })
-                .await
-            {
-                println!("Cannot respond to slash command: {}", e);
+                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
+                }).await.unwrap();
+                let res = commands::ai::run(&command.data.options).await;
+                command.edit_original_interaction_response(&ctx.http, |response| {
+                    response.content(res)
+                }).await.unwrap();
             }
+            else {
+                let content = match command.data.name.as_str() {
+                    "roll" => commands::roll::run(&command.data.options),
+                    "gif" => commands::gif::run(&command.data.options).await, 
+                    "name" => commands::name::run(),
+                    "vid" => commands::vid::run(&command.data.options).await,
+                    "jerma" => commands::jerma::run(),
+                    "help" => commands::help::run(),
+                    "song" => commands::song::run(&command.data.options).await,
+                    "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options, command.channel_id).await,
+                    _ => "Not implemented".to_string(),
+                };
+                if let Err(e) = command
+                    .create_interaction_response(&ctx.http, |response| {
+                        response
+                            .kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|message| message.content(content))
+                    })
+                    .await
+                {
+                    println!("Cannot respond to slash command: {}", e);
+                }
+            }
+            
         }
     }
 
@@ -121,6 +135,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::help::register(command))
                 .create_application_command(|command| commands::song::register(command))
                 .create_application_command(|command| commands::ping_voice::register(command))
+                .create_application_command(|command| commands::ai::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -136,6 +151,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::help::register(command))
                 .create_application_command(|command| commands::song::register(command))
                 .create_application_command(|command| commands::ping_voice::register(command))
+                .create_application_command(|command| commands::ai::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -152,12 +168,12 @@ impl EventHandler for Handler {
         
     }
 }
+//TODO: get this "it's friday" message to work
 fn friday(datetime: DateTime<Local>) {
     println!("It's friday: {}", datetime);
     
 }
 
-//kind of dumb i have to pass some_idx as Option, when I already check it's type above
 async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
     let mut final_link = msg.content.to_owned();
     let prepend_str = format!("Posted by {}\n", msg.author.name);

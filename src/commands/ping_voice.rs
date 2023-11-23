@@ -31,15 +31,15 @@ pub async fn run(ctx: Context, options: &[CommandDataOption], source_channel: Ch
 
     if let CommandDataOptionValue::Channel(channel) = channel {
         let id = channel.id;
-        println!("ChannelId: {id}");
         let to_channel = id.to_channel(&ctx.http).await.unwrap();
         let guild = to_channel.guild().unwrap();
         let mut s: String = String::from("");
         if let Ok(members) = guild.members(ctx.cache).await {
+            //mention all of the users in the channel
             for member in members {
-                println!("Member user id: {}", member.user.id);
                 s.push_str(Mention::from(member.user.id).to_string().as_str());
             }
+            //check if the user attached a message with the command
             match message {
                 Some(CommandDataOptionValue::String(message)) => {
                     s.push_str(message.as_str());
@@ -47,9 +47,6 @@ pub async fn run(ctx: Context, options: &[CommandDataOption], source_channel: Ch
                 None => {},
                 _ => {}
             }
-/*             source_channel.send_message(&ctx.http, |m|  {
-                m.content(s)
-            }).await.unwrap(); */
             return s;
         }
         else {
