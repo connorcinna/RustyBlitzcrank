@@ -75,6 +75,7 @@ impl EventHandler for Handler {
                 "jerma" => commands::jerma::run(),
                 "help" => commands::help::run(),
                 "song" => commands::song::run(&command.data.options).await,
+                "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options, command.channel_id).await,
                 _ => "Not implemented".to_string(),
             };
             if let Err(e) = command
@@ -119,6 +120,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::jerma::register(command))
                 .create_application_command(|command| commands::help::register(command))
                 .create_application_command(|command| commands::song::register(command))
+                .create_application_command(|command| commands::ping_voice::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -133,6 +135,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::jerma::register(command))
                 .create_application_command(|command| commands::help::register(command))
                 .create_application_command(|command| commands::song::register(command))
+                .create_application_command(|command| commands::ping_voice::register(command))
         })
         .await
         .expect("Could not add the guild command");
