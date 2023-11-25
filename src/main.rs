@@ -11,7 +11,7 @@ use tokio::fs::File;
 use std::str::FromStr;
 use std::env;
 
-use serenity::model::prelude::{Activity, CommandId, ChannelId};
+use serenity::model::prelude::Activity;
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
@@ -87,7 +87,7 @@ impl EventHandler for Handler {
                     "jerma" => commands::jerma::run(),
                     "help" => commands::help::run(),
                     "song" => commands::song::run(&command.data.options).await,
-                    "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options, command.channel_id).await,
+                    "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
                     _ => "Not implemented".to_string(),
                 };
                 if let Err(e) = command

@@ -3,7 +3,6 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::command::CommandOptionType;
 use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
 use serenity::model::channel::ChannelType;
-use serenity::model::id::ChannelId;
 use serenity::model::mention::Mention;
 
 use serenity::client::Context;
@@ -12,7 +11,7 @@ extern crate dotenv;
 extern crate serde_json;
 
 
-pub async fn run(ctx: Context, options: &[CommandDataOption], source_channel: ChannelId) -> String {
+pub async fn run(ctx: Context, options: &[CommandDataOption]) -> String {
     let channel = options
             .get(0)
             .expect("Expected channel")
