@@ -37,7 +37,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         {"category": "HARM_CATEGORY_DANGEROUS", "threshold":4},
                     ],
                     "temperature" : 1,
-                    "max_output_tokens": 4096,
+                    "max_output_tokens": 2000,
                 }))
                 .send()
                 .await
