@@ -17,6 +17,7 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
+use serenity::Error;
 use serenity::prelude::*;
 
 
@@ -74,9 +75,46 @@ impl EventHandler for Handler {
                         .interaction_response_data(|message| message.content(command.data.name.as_str()))
                 }).await.unwrap();
                 let res = commands::ai::run(&command.data.options).await;
-                command.edit_original_interaction_response(&ctx.http, |response| {
-                    response.content(res)
-                }).await.unwrap();
+                if res.chars().count() >= 2000  {
+                    let char_vec: Vec<char> = res.chars().collect();
+                    let first_message_str: String = char_vec[..2000].into_iter().collect();
+                    let second_message_str: String = char_vec[2000..].into_iter().collect();
+                    command.edit_original_interaction_response(&ctx.http, |response| {
+                        response.content(&first_message_str)
+                    }).await.unwrap();
+                    command.create_followup_message(&ctx.http, |response| {
+                        response.content(&second_message_str)
+                    }).await.unwrap();
+                }
+                else {
+                    command.edit_original_interaction_response(&ctx.http, |response| {
+                        response.content(&res)
+                    }).await.unwrap(); /* {
+                        Ok(_m) => {}
+                        Err(e) => {
+                            command.edit_original_interaction_response(&ctx.http, |response| {
+                                match e {
+                                    Error::Model(ModelError::MessageTooLong(code_points)) => {
+                                        let char_vec: Vec<char> = res.chars().collect();
+                                        let len = 2000 - code_points;
+                                        let first_message_str: String = char_vec[0..len].into_iter().collect();
+                                        response.content(first_message_str)
+                                    }
+                                    Error::Http(e) => {
+                                        response.content(format!("Error: Http error: {}", e.to_string()))
+                                    }
+                                    Error::Json(e) => {
+                                        response.content(format!("Error: Json error: {}", e.to_string()))
+                                    }
+                                    _ => {
+                                        response.content("idk")
+                                    }
+                                }
+                            }).await.unwrap();
+                        }
+                    } */
+                }
+                
             }
             else {
                 let content = match command.data.name.as_str() {
@@ -101,7 +139,6 @@ impl EventHandler for Handler {
                     println!("Cannot respond to slash command: {}", e);
                 }
             }
-            
         }
     }
 

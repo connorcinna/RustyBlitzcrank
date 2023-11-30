@@ -27,6 +27,8 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                     "prompt": {
                         "text": query 
                     },
+                    "temperature" : 1,
+                    "max_output_tokens": 1024,
                     //2edgy4me
                     "safety_settings": [
                         {"category": "HARM_CATEGORY_DEROGATORY", "threshold":4},
@@ -36,8 +38,6 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         {"category": "HARM_CATEGORY_MEDICAL", "threshold":4},
                         {"category": "HARM_CATEGORY_DANGEROUS", "threshold":4},
                     ],
-                    "temperature" : 1,
-                    "max_output_tokens": 2000,
                 }))
                 .send()
                 .await
@@ -45,6 +45,11 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             match res.status() {
                 reqwest::StatusCode::OK => {
                     let res_text = res.text().await.unwrap();
+                    if res_text.len() > 1024 {
+                        println!("Response too long - regenerating");
+/*                         run(options).await; //rerun the 
+                        return String::from(""); */
+                    }
                     let json_result: Value = serde_json::from_str(&res_text).unwrap();
                     let output = json_result.get("candidates")
                         .and_then(|value| value.get(0))
@@ -53,6 +58,8 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         .to_string();
                     let output = output.replace("\\n", " ");
                     let output = &output[1..output.len()-1];
+                    //println!("Size of output: {}", output.len());
+                    println!("Size of output: {}", output.chars().count());
                     format!("\n{}", output)
                     //output
                 },
