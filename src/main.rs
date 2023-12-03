@@ -17,7 +17,6 @@ use serenity::model::application::interaction::{Interaction, InteractionResponse
 use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
-use serenity::Error;
 use serenity::prelude::*;
 
 
@@ -30,119 +29,27 @@ impl EventHandler for Handler {
         let idx_x_link = msg.content.find("https://x.com");
         let idx_twitter_link = msg.content.find("https://twitter.com");
         //have to pay for twitter api now so lol
-        if let Some(some_idx) = idx_twitter_link { 
+        if let Some(some_idx) = idx_twitter_link {
             vxtwitter(ctx, &msg, (some_idx, "twitter")).await;
         }
         else if let Some(some_idx) = idx_x_link {
-            vxtwitter(ctx, &msg, (some_idx, "x")).await;     
-        }
-    } 
-
-    //TODO: clean up this method by creating a function that can be called for all API calls that might take a while to run
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = interaction {
-            //google search now takes more than 3 seconds a lot of the time, have to defer it
-            //thats why there's this special case here
-            if command.data.name.as_str() == "search" {
-                command.create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
-                }).await.unwrap();
-                let res = commands::search::run(&command.data.options).await;
-                let mut img_path = std::env::current_dir().unwrap();
-                img_path.push("lol.png");
-                let img_file = File::open(img_path).await.unwrap();
-                let files = vec![(&img_file, "lol.png")];
-                if res == "Fuck" { //google didn't find anything
-                    let channel_id = command.channel_id; 
-                    //funny blitzcrank picture
-                    //empty message closure to satisfy function
-                    let _ = channel_id.send_files(&ctx.http, files, |m| m).await; 
-                    //get rid of the "bot is thinking..." message
-                    command.delete_original_interaction_response(&ctx.http).await.unwrap();
-                }
-                else { //normal case
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(res)
-                    }).await.unwrap();
-                }
-            }
-            else if command.data.name.as_str() == "ai" {
-                command.create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
-                }).await.unwrap();
-                let res = commands::ai::run(&command.data.options).await;
-                if res.chars().count() >= 2000  {
-                    let char_vec: Vec<char> = res.chars().collect();
-                    let first_message_str: String = char_vec[..2000].into_iter().collect();
-                    let second_message_str: String = char_vec[2000..].into_iter().collect();
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(&first_message_str)
-                    }).await.unwrap();
-                    command.create_followup_message(&ctx.http, |response| {
-                        response.content(&second_message_str)
-                    }).await.unwrap();
-                }
-                else {
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(&res)
-                    }).await.unwrap(); /* {
-                        Ok(_m) => {}
-                        Err(e) => {
-                            command.edit_original_interaction_response(&ctx.http, |response| {
-                                match e {
-                                    Error::Model(ModelError::MessageTooLong(code_points)) => {
-                                        let char_vec: Vec<char> = res.chars().collect();
-                                        let len = 2000 - code_points;
-                                        let first_message_str: String = char_vec[0..len].into_iter().collect();
-                                        response.content(first_message_str)
-                                    }
-                                    Error::Http(e) => {
-                                        response.content(format!("Error: Http error: {}", e.to_string()))
-                                    }
-                                    Error::Json(e) => {
-                                        response.content(format!("Error: Json error: {}", e.to_string()))
-                                    }
-                                    _ => {
-                                        response.content("idk")
-                                    }
-                                }
-                            }).await.unwrap();
-                        }
-                    } */
-                }
-                
-            }
-            else {
-                let content = match command.data.name.as_str() {
-                    "roll" => commands::roll::run(&command.data.options),
-                    "gif" => commands::gif::run(&command.data.options).await, 
-                    "name" => commands::name::run(),
-                    "vid" => commands::vid::run(&command.data.options).await,
-                    "jerma" => commands::jerma::run(),
-                    "help" => commands::help::run(),
-                    "song" => commands::song::run(&command.data.options).await,
-                    "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
-                    _ => "Not implemented".to_string(),
-                };
-                if let Err(e) = command
-                    .create_interaction_response(&ctx.http, |response| {
-                        response
-                            .kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|message| message.content(content))
-                    })
-                    .await
-                {
-                    println!("Cannot respond to slash command: {}", e);
-                }
-            }
+            vxtwitter(ctx, &msg, (some_idx, "x")).await;
         }
     }
 
-    
+    //TODO: clean up this method by creating a function that can be called for all API calls that might take a while to run
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        //let command = Interaction::ApplicationCommand(interaction);
+        if let Interaction::ApplicationCommand(command) = &interaction {
+            let cmd_str = command.data.name.as_str();
+            if cmd_str == "search" || cmd_str == "ai" {
+                long_interaction(ctx, interaction).await;
+            }
+            else {
+                short_interaction(ctx, &interaction).await;
+            }
+        }
+    }
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
         ctx.set_activity(Activity::watching("Jerma985")).await;
@@ -192,7 +99,6 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the guild command");
-
         //how to delete normal application commands
 //        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1170526580427206656)).await.expect("Expected commandID");
         //how to delete global commands
@@ -202,13 +108,11 @@ impl EventHandler for Handler {
 //           commands::song::register(command)
 //       });
        //.await;
-        
     }
 }
 //TODO: get this "it's friday" message to work
 fn friday(datetime: DateTime<Local>) {
     println!("It's friday: {}", datetime);
-    
 }
 
 async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
@@ -218,14 +122,100 @@ async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
         final_link.insert_str(some_idx.0+8, "c.vx"); //guaranteed to not panic, already checked string size
     }
     else { //x link
-        final_link.insert_str(some_idx.0+8, "c.v"); 
-        final_link.insert_str(some_idx.0+12, "twitter"); 
+        final_link.insert_str(some_idx.0+8, "c.v");
+        final_link.insert_str(some_idx.0+12, "twitter");
     }
     final_link.insert_str(0, &prepend_str);
 
     msg.channel_id.say(&ctx.http, final_link).await.unwrap();
     msg.delete(&ctx.http).await.expect("Unable to delete message");
-    
+}
+
+async fn short_interaction(ctx: Context, interaction: &Interaction) {
+    if let Interaction::ApplicationCommand(command) = &interaction {
+        let cmd_str = command.data.name.as_str();
+        let content = match cmd_str {
+            "roll" => commands::roll::run(&command.data.options),
+            "gif" => commands::gif::run(&command.data.options).await,
+            "name" => commands::name::run(),
+            "vid" => commands::vid::run(&command.data.options).await,
+            "jerma" => commands::jerma::run(),
+            "help" => commands::help::run(),
+            "song" => commands::song::run(&command.data.options).await,
+            "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
+            _ => "Not implemented".to_string(),
+        };
+        if let Err(e) = command
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|message| message.content(content))
+            })
+            .await
+        {
+            println!("Cannot respond to slash command: {}", e);
+        }
+    }
+
+}
+async fn long_interaction(ctx: Context, interaction: Interaction) {
+    if let Interaction::ApplicationCommand(command) = &interaction {
+        let cmd_str = command.data.name.as_str();
+        match cmd_str {
+           "search" => {
+                command.create_interaction_response(&ctx.http, |response| {
+                    response
+                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
+                }).await.unwrap();
+                let res = commands::search::run(&command.data.options).await;
+                let mut img_path = std::env::current_dir().unwrap();
+                img_path.push("lol.png");
+                let img_file = File::open(img_path).await.unwrap();
+                let files = vec![(&img_file, "lol.png")];
+                if res == "Fuck" { //google didn't find anything
+                    let channel_id = command.channel_id;
+                    //funny blitzcrank picture
+                    //empty message closure to satisfy function
+                    let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
+                    //get rid of the "bot is thinking..." message
+                    command.delete_original_interaction_response(&ctx.http).await.unwrap();
+                }
+                else { //normal case
+                    command.edit_original_interaction_response(&ctx.http, |response| {
+                        response.content(res)
+                    }).await.unwrap();
+                }
+           }
+           "ai" => {
+                command.create_interaction_response(&ctx.http, |response| {
+                        response
+                            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                            .interaction_response_data(|message| message.content(command.data.name.as_str()))
+                    }).await.unwrap();
+                let res = commands::ai::run(&command.data.options).await;
+                if res.chars().count() >= 2000  {
+                    let char_vec: Vec<char> = res.chars().collect();
+                    let first_message_str: String = char_vec[..2000].into_iter().collect();
+                    let second_message_str: String = char_vec[2000..].into_iter().collect();
+                    command.edit_original_interaction_response(&ctx.http, |response| {
+                        response.content(&first_message_str)
+                    }).await.unwrap();
+                    command.create_followup_message(&ctx.http, |response| {
+                        response.content(&second_message_str)
+                    }).await.unwrap();
+                }
+                else {
+                    command.edit_original_interaction_response(&ctx.http, |response| {
+                        response.content(&res)
+                    }).await.unwrap();
+                }
+           }
+           &_ => {
+               println!("Unimplemented");
+           }
+        }
+    }
 }
 
 #[tokio::main]
@@ -239,7 +229,6 @@ async fn main() {
         .event_handler(Handler)
         .await
         .expect("Error creating client");
-
     // Finally, start a single shard, and start listening to events.
     //
     // Shards will automatically attempt to reconnect, and will perform
