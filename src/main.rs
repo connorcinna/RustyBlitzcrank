@@ -217,6 +217,12 @@ async fn long_interaction(ctx: Context, interaction: Interaction) {
         }
     }
 }
+//async fn search_interaction(ctx: Context, interaction: Interaction) {
+//    
+//}
+//async fn ai_interaction(ctx: Context, commmand: &ApplicationCommandInteraction) {
+//    
+//}
 
 #[tokio::main]
 async fn main() {
