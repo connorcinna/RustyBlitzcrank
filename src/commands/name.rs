@@ -35,9 +35,7 @@ pub fn run() -> String {
             if total.len() > 16 {
                 return total[..16].to_string();
             }
-            else {
-                return total;
-            }
+            return total; 
         }
     }
     //format: adjective + noun + random numbers
@@ -49,9 +47,7 @@ pub fn run() -> String {
         if total.len() > 16 {
             return total[..16].to_string();
         }
-        else {
-            return total;
-        }
+        return total;
     }
 }
 
