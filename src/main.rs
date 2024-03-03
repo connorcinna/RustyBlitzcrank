@@ -39,11 +39,10 @@ impl EventHandler for Handler {
 
     //TODO: clean up this method by creating a function that can be called for all API calls that might take a while to run
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        //let command = Interaction::ApplicationCommand(interaction);
         if let Interaction::ApplicationCommand(command) = &interaction {
             let cmd_str = command.data.name.as_str();
-            if cmd_str == "search" || cmd_str == "ai" {
-                long_interaction(ctx, interaction).await;
+            if cmd_str == "search" || cmd_str == "ai" || cmd_str == "password" {
+                long_interaction(ctx, &interaction).await;
             }
             else {
                 short_interaction(ctx, &interaction).await;
@@ -80,6 +79,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::song::register(command))
                 .create_application_command(|command| commands::ping_voice::register(command))
                 .create_application_command(|command| commands::ai::register(command))
+                .create_application_command(|command| commands::password::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -96,6 +96,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::song::register(command))
                 .create_application_command(|command| commands::ping_voice::register(command))
                 .create_application_command(|command| commands::ai::register(command))
+                .create_application_command(|command| commands::password::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -158,7 +159,7 @@ async fn short_interaction(ctx: Context, interaction: &Interaction) {
     }
 
 }
-async fn long_interaction(ctx: Context, interaction: Interaction) {
+async fn long_interaction(ctx: Context, interaction: &Interaction) {
     if let Interaction::ApplicationCommand(command) = &interaction {
         let cmd_str = command.data.name.as_str();
         match cmd_str {
@@ -210,6 +211,9 @@ async fn long_interaction(ctx: Context, interaction: Interaction) {
                         response.content(&res)
                     }).await.unwrap();
                 }
+           }
+           "password" => {
+
            }
            &_ => {
                println!("Unimplemented");

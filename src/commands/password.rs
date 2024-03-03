@@ -8,6 +8,7 @@ pub fn run(options: &[CommandDataOption]) -> String
 { 
     let mut _size: i64 = 0;
     let mut ret: String;
+    let s: String;
     let option = options
         .get(0)
         .expect("Expected number of characters")
@@ -20,24 +21,40 @@ pub fn run(options: &[CommandDataOption]) -> String
         .expect("unable to read file words.json");
     let noun: String = random_word(json.clone(), String::from("noun").clone());
     let mut rng = rand::thread_rng();
+     //format: noun + verb + er + random numbers 
     if rng.gen::<f32>() >= 0.50
     {
-         //format: noun + verb + er + random numbers 
         let verb: String = random_word(json.clone(), String::from("verb").clone());
         ret = format!("{noun}{verb}er");
+        //append random numbers to the end 
         while ret.len() < _size as usize
         {
             ret.push_str(&rng.gen_range(0..10).to_string());
         }
-        return ret[.._size as i32].to_string();
+        //truncate the string per _size
+        s = match ret.char_indices().nth(_size as usize)
+        {
+            Some((pos, _)) => ret[..pos].to_string(),
+            None => ret,
+        };
     }
+    //format: adjective + noun + random numbers
     else 
     {
         let adjective: String = random_word(json.clone(), String::from("adjective").clone());
-       //format: adjective + noun + random numbers
+        ret = format!("{adjective}{noun}");
+        while ret.len() < _size as usize
+        {
+            ret.push_str(&rng.gen_range(0..10).to_string());
+        }
+        //truncate the string per _size
+        s = match ret.char_indices().nth(_size as usize)
+        {
+            Some((pos, _)) => ret[..pos].to_string(),
+            None => ret,
+        };
     }
-    
-    String::from("")
+    s
 }
 
 pub fn random_word(json: serde_json::Value, word_type: String) -> String
