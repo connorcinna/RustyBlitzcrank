@@ -45,17 +45,13 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             match res.status() {
                 reqwest::StatusCode::OK => {
                     let res_text = res.text().await.unwrap();
-                    if res_text.len() > 1024 {
-                        println!("Response too long - regenerating");
-/*                         run(options).await; //rerun the 
-                        return String::from(""); */
-                    }
                     let json_result: Value = serde_json::from_str(&res_text).unwrap();
                     let output = json_result.get("candidates")
                         .and_then(|value| value.get(0))
                         .and_then(|value| value.get("output"))
                         .unwrap()
                         .to_string();
+                    println!("{:?}", json_result);
                     let output = output.replace("\\n", " ");
                     let output = &output[1..output.len()-1];
                     //println!("Size of output: {}", output.len());

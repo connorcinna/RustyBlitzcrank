@@ -1,4 +1,5 @@
 mod commands;
+pub const MAX_MSG_SZ : usize = 2000;
 
 extern crate dotenv;
 
@@ -66,6 +67,7 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
+
         //add commands to the main server
         let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
@@ -83,6 +85,7 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the guild command");
+
         //add commands to the test server
         let _test_guild_commands = GuildId::set_application_commands(&test_guild_id, &ctx.http, |commands| {
             commands
@@ -100,10 +103,13 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the guild command");
+
         //how to delete normal application commands
 //        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1170526580427206656)).await.expect("Expected commandID");
+//
         //how to delete global commands
         //serenity::model::application::command::Command::delete_global_application_command(&ctx.http, CommandId(1170176226376286258)).await.expect("expected commandid");
+        //
         //how to create global commands
 //       let global_command = Command::create_global_application_command(&ctx.http, |command| {
 //           commands::song::register(command)
@@ -170,12 +176,12 @@ async fn long_interaction(ctx: Context, interaction: &Interaction) {
                         .interaction_response_data(|message| message.content(command.data.name.as_str()))
                 }).await.unwrap();
                 let res = commands::search::run(&command.data.options).await;
-                let mut img_path = std::env::current_dir().unwrap();
-                img_path.push("lol.png");
-                let img_file = File::open(img_path).await.unwrap();
-                let files = vec![(&img_file, "lol.png")];
                 if res == "Fuck" { //google didn't find anything
                     let channel_id = command.channel_id;
+                    let mut img_path = std::env::current_dir().unwrap();
+                    img_path.push("lol.png");
+                    let img_file = File::open(img_path).await.unwrap();
+                    let files = vec![(&img_file, "lol.png")];
                     //funny blitzcrank picture
                     //empty message closure to satisfy function
                     let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
@@ -195,10 +201,10 @@ async fn long_interaction(ctx: Context, interaction: &Interaction) {
                             .interaction_response_data(|message| message.content(command.data.name.as_str()))
                     }).await.unwrap();
                 let res = commands::ai::run(&command.data.options).await;
-                if res.chars().count() >= 2000  {
+                if res.chars().count() >= MAX_MSG_SZ {
                     let char_vec: Vec<char> = res.chars().collect();
-                    let first_message_str: String = char_vec[..2000].into_iter().collect();
-                    let second_message_str: String = char_vec[2000..].into_iter().collect();
+                    let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
+                    let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
                     command.edit_original_interaction_response(&ctx.http, |response| {
                         response.content(&first_message_str)
                     }).await.unwrap();
@@ -213,7 +219,17 @@ async fn long_interaction(ctx: Context, interaction: &Interaction) {
                 }
            }
            "password" => {
-
+                let res = commands::password::run(&command.data.options);
+                let dm = command.user.direct_message(&ctx, |message| {
+                    message.content(format!("||{}||", res))
+                }).await;
+                match dm {
+                    Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
+                    Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
+                }
+                command.create_interaction_response(&ctx.http, |response| {
+                    response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
+                }).await.unwrap();
            }
            &_ => {
                println!("Unimplemented");

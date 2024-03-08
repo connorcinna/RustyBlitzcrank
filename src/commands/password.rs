@@ -8,6 +8,7 @@ pub fn run(options: &[CommandDataOption]) -> String
 { 
     let mut _size: i64 = 0;
     let mut ret: String;
+    let json: serde_json::Value;
     let s: String;
     let option = options
         .get(0)
@@ -16,16 +17,21 @@ pub fn run(options: &[CommandDataOption]) -> String
         .as_ref()
         .expect("Expected number of characters");
     if let CommandDataOptionValue::Integer(size) = option { _size = *size; }
-    let json = serde_json::from_str::<serde_json::Value>(&std::fs::read_to_string("./src/words.json")
-        .expect("unable to convert file to json"))
-        .expect("unable to read file words.json");
-    let noun: String = random_word(json.clone(), String::from("noun").clone());
+    let json_file = std::fs::read_to_string("./src/words.json");
+    match json_file
+    {
+        Ok(json_file) => json = serde_json::from_str::<serde_json::Value>(&json_file)
+            .expect("unable to convert file to json"),
+        Err(e) => panic!("unable to find json file: {}", e),
+    }
+
+    let noun: String = random_word(json.clone(), String::from("nouns").clone());
     let mut rng = rand::thread_rng();
      //format: noun + verb + er + random numbers 
     if rng.gen::<f32>() >= 0.50
     {
-        let verb: String = random_word(json.clone(), String::from("verb").clone());
-        ret = format!("{noun}{verb}er");
+        let verb: String = random_word(json.clone(), String::from("verbs").clone());
+        ret = format!("{}{}er", noun, verb);
         //append random numbers to the end 
         while ret.len() < _size as usize
         {
@@ -41,8 +47,8 @@ pub fn run(options: &[CommandDataOption]) -> String
     //format: adjective + noun + random numbers
     else 
     {
-        let adjective: String = random_word(json.clone(), String::from("adjective").clone());
-        ret = format!("{adjective}{noun}");
+        let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
+        ret = format!("{}{}", adjective, noun);
         while ret.len() < _size as usize
         {
             ret.push_str(&rng.gen_range(0..10).to_string());
@@ -82,7 +88,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .create_option(|option| 
                        {
                             option
-                                .name("Characters")
+                                .name("characters")
                                 .description("The number of characters you want your password to be")
                                 .kind(CommandOptionType::Integer)
                                 .required(true)
