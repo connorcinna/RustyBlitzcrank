@@ -4,21 +4,20 @@ pub const MAX_MSG_SZ : usize = 2000;
 extern crate dotenv;
 
 use dotenv::dotenv;
-use cron::Schedule;
 use chrono::{Local, DateTime};
-#[allow(deprecated)]
-use serenity::model::interactions::application_command::ApplicationCommandInteraction;
 use tokio::fs::File;
-
-use std::str::FromStr;
+use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
 use std::env;
 
+#[allow(deprecated)]
+use serenity::model::interactions::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::Activity;
 use serenity::async_trait;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
+use serenity::model::id::ChannelId;
 use serenity::prelude::*;
 
 
@@ -27,8 +26,8 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        let idx_x_link = msg.content.find("https://x.com");
         let idx_twitter_link = msg.content.find("https://twitter.com");
+        let idx_x_link = msg.content.find("https://x.com");
         //have to pay for twitter api now so lol
         if let Some(some_idx) = idx_twitter_link {
             vxtwitter(ctx, &msg, (some_idx, "twitter")).await;
@@ -104,27 +103,26 @@ impl EventHandler for Handler {
         .await
         .expect("Could not add the guild command");
 
-        //how to delete normal application commands
-//        GuildId::delete_application_command(&guild_id, &ctx.http, CommandId(1170526580427206656)).await.expect("Expected commandID");
-//
-        //how to delete global commands
-        //serenity::model::application::command::Command::delete_global_application_command(&ctx.http, CommandId(1170176226376286258)).await.expect("expected commandid");
-        //
-        //how to create global commands
-//       let global_command = Command::create_global_application_command(&ctx.http, |command| {
-//           commands::song::register(command)
-//       });
-       //.await;
+        let schedule = JobScheduler::new().await.unwrap();
+        schedule.add(
+            Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
+                let channel_id = ChannelId(
+                    env::var("MAIN_CHANNEL_ID")
+                    .expect("Expected MAIN_CHANNEL_ID in environment")
+                    .parse()
+                    .expect("MAIN_CHANNEL_ID must be an integer"));
+                channel_id.send_message(&ctx.http, |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"))
+                    .await;
+            }).unwrap(),
+        ).await.unwrap();
     }
-}
-//TODO: get this "it's friday" message to work
-fn friday(datetime: DateTime<Local>) {
-    println!("It's friday: {}", datetime);
 }
 
 async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
     let mut final_link = msg.content.to_owned();
     let prepend_str = format!("Posted by {}\n", msg.author.name);
+    //TODO: maybe do some fancy url object magic to change the url string instead of just using it
+    //like a string
     if some_idx.1 == "twitter" { //twitter link
         final_link.insert_str(some_idx.0+8, "c.vx"); //guaranteed to not panic, already checked string size
     }
@@ -246,7 +244,7 @@ async fn password_interaction(ctx: Context, command: &ApplicationCommandInteract
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    // Configure the client with your Discord bot token in the environment.
+    // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
 
     // Build our client.
@@ -261,11 +259,10 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
-    let schedule_str = "0 0   10   *   *   Fri *";
-    let schedule = Schedule::from_str(schedule_str).unwrap();
-    for datetime in schedule.upcoming(Local).take(10) {
-        println!("-> {}", datetime);
-        friday(datetime);
-    }
+//    let schedule = Schedule::from_str( "0 0 10 * *  Fri *").unwrap();
+//    for datetime in schedule.upcoming(Local).take(10) {
+//        println!("-> {}", datetime);
+//        friday(datetime);
+//    }
 
 }
