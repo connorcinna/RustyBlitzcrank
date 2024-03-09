@@ -6,8 +6,9 @@ extern crate dotenv;
 use dotenv::dotenv;
 use cron::Schedule;
 use chrono::{Local, DateTime};
+#[allow(deprecated)]
+use serenity::model::interactions::application_command::ApplicationCommandInteraction;
 use tokio::fs::File;
-//use serenity::model::prelude::command::Command;
 
 use std::str::FromStr;
 use std::env;
@@ -26,7 +27,6 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-
         let idx_x_link = msg.content.find("https://x.com");
         let idx_twitter_link = msg.content.find("https://twitter.com");
         //have to pay for twitter api now so lol
@@ -38,18 +38,18 @@ impl EventHandler for Handler {
         }
     }
 
-    //TODO: clean up this method by creating a function that can be called for all API calls that might take a while to run
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = &interaction {
             let cmd_str = command.data.name.as_str();
-            if cmd_str == "search" || cmd_str == "ai" || cmd_str == "password" {
-                long_interaction(ctx, &interaction).await;
-            }
-            else {
-                short_interaction(ctx, &interaction).await;
-            }
+            match cmd_str {
+               "search" => special_interaction(ctx, &interaction).await,
+               "ai" => special_interaction(ctx, &interaction).await,
+               "password" => special_interaction(ctx, &interaction).await,
+                _ => normal_interaction(ctx, &interaction).await
+            };
         }
     }
+
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name);
         ctx.set_activity(Activity::watching("Jerma985")).await;
@@ -138,7 +138,7 @@ async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
     msg.delete(&ctx.http).await.expect("Unable to delete message");
 }
 
-async fn short_interaction(ctx: Context, interaction: &Interaction) {
+async fn normal_interaction(ctx: Context, interaction: &Interaction) {
     if let Interaction::ApplicationCommand(command) = &interaction {
         let cmd_str = command.data.name.as_str();
         let content = match cmd_str {
@@ -165,84 +165,83 @@ async fn short_interaction(ctx: Context, interaction: &Interaction) {
     }
 
 }
-async fn long_interaction(ctx: Context, interaction: &Interaction) {
+async fn special_interaction(ctx: Context, interaction: &Interaction) {
     if let Interaction::ApplicationCommand(command) = &interaction {
         let cmd_str = command.data.name.as_str();
         match cmd_str {
-           "search" => {
-                command.create_interaction_response(&ctx.http, |response| {
-                    response
-                        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                        .interaction_response_data(|message| message.content(command.data.name.as_str()))
-                }).await.unwrap();
-                let res = commands::search::run(&command.data.options).await;
-                if res == "Fuck" { //google didn't find anything
-                    let channel_id = command.channel_id;
-                    let mut img_path = std::env::current_dir().unwrap();
-                    img_path.push("lol.png");
-                    let img_file = File::open(img_path).await.unwrap();
-                    let files = vec![(&img_file, "lol.png")];
-                    //funny blitzcrank picture
-                    //empty message closure to satisfy function
-                    let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
-                    //get rid of the "bot is thinking..." message
-                    command.delete_original_interaction_response(&ctx.http).await.unwrap();
-                }
-                else { //normal case
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(res)
-                    }).await.unwrap();
-                }
-           }
-           "ai" => {
-                command.create_interaction_response(&ctx.http, |response| {
-                        response
-                            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                            .interaction_response_data(|message| message.content(command.data.name.as_str()))
-                    }).await.unwrap();
-                let res = commands::ai::run(&command.data.options).await;
-                if res.chars().count() >= MAX_MSG_SZ {
-                    let char_vec: Vec<char> = res.chars().collect();
-                    let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
-                    let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(&first_message_str)
-                    }).await.unwrap();
-                    command.create_followup_message(&ctx.http, |response| {
-                        response.content(&second_message_str)
-                    }).await.unwrap();
-                }
-                else {
-                    command.edit_original_interaction_response(&ctx.http, |response| {
-                        response.content(&res)
-                    }).await.unwrap();
-                }
-           }
-           "password" => {
-                let res = commands::password::run(&command.data.options);
-                let dm = command.user.direct_message(&ctx, |message| {
-                    message.content(format!("||{}||", res))
-                }).await;
-                match dm {
-                    Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
-                    Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
-                }
-                command.create_interaction_response(&ctx.http, |response| {
-                    response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
-                }).await.unwrap();
-           }
-           &_ => {
-               println!("Unimplemented");
-           }
+           "search" => search_interaction(ctx, command).await,
+           "ai" => ai_interaction(ctx, command).await,
+           "password" => password_interaction(ctx, command).await,
+           &_ => println!("Unimplemented"),
         }
     }
 }
-//async fn search_interaction(ctx: Context, interaction: Interaction) {
-//    
-//}
-//async fn ai_interaction(ctx: Context, commmand: &ApplicationCommandInteraction) {
-//    
-//}
+#[allow(deprecated)]
+async fn search_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
+    command.create_interaction_response(&ctx.http, |response| {
+    response
+        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+        .interaction_response_data(|message| message.content(command.data.name.as_str()))
+    }).await.unwrap();
+    let res = commands::search::run(&command.data.options).await;
+    if res == "Fuck" { //google didn't find anything
+        let channel_id = command.channel_id;
+        let mut img_path = std::env::current_dir().unwrap();
+        img_path.push("lol.png");
+        let img_file = File::open(img_path).await.unwrap();
+        let files = vec![(&img_file, "lol.png")];
+        //funny blitzcrank picture
+        //empty message closure to satisfy function
+        let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
+        //get rid of the "bot is thinking..." message
+        command.delete_original_interaction_response(&ctx.http).await.unwrap();
+    }
+    else { //normal case
+        command.edit_original_interaction_response(&ctx.http, |response| {
+            response.content(res)
+        }).await.unwrap();
+    }   
+}
+
+#[allow(deprecated)]
+async fn ai_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
+    command.create_interaction_response(&ctx.http, |response| {
+            response
+                .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                .interaction_response_data(|message| message.content(command.data.name.as_str()))
+            }).await.unwrap();
+    let res = commands::ai::run(&command.data.options).await;
+    if res.chars().count() >= MAX_MSG_SZ {
+        let char_vec: Vec<char> = res.chars().collect();
+        let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
+        let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
+        command.edit_original_interaction_response(&ctx.http, |response| {
+            response.content(&first_message_str)
+        }).await.unwrap();
+        command.create_followup_message(&ctx.http, |response| {
+            response.content(&second_message_str)
+        }).await.unwrap();
+    }
+    else {
+        command.edit_original_interaction_response(&ctx.http, |response| {
+            response.content(&res)
+        }).await.unwrap();
+    }
+}
+#[allow(deprecated)]
+async fn password_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
+    let res = commands::password::run(&command.data.options);
+    let dm = command.user.direct_message(&ctx, |message| {
+        message.content(format!("||{}||", res))
+    }).await;
+    match dm {
+        Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
+        Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
+    }
+    command.create_interaction_response(&ctx.http, |response| {
+        response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
+    }).await.unwrap();
+}
 
 #[tokio::main]
 async fn main() {
