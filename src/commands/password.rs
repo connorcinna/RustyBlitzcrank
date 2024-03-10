@@ -4,6 +4,8 @@ use serenity::model::application::command::CommandOptionType;
 use rand::Rng;
 use serde_json;
 
+//TODO: Current the exact same as commands::name, need to add some special password specific stuff
+//variable casing, special characters other than 0-9, etc.
 pub fn run(options: &[CommandDataOption]) -> String 
 { 
     let mut _size: i64 = 0;
@@ -43,7 +45,8 @@ pub fn run(options: &[CommandDataOption]) -> String
             Some((pos, _)) => ret[..pos].to_string(),
             None => ret,
         };
-    }
+    } 
+
     //format: adjective + noun + random numbers
     else 
     {

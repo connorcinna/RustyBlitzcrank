@@ -4,9 +4,8 @@ pub const MAX_MSG_SZ : usize = 2000;
 extern crate dotenv;
 
 use dotenv::dotenv;
-use chrono::{Local, DateTime};
 use tokio::fs::File;
-use tokio_cron_scheduler::{Job, JobScheduler, JobSchedulerError};
+use tokio_cron_scheduler::{Job, JobScheduler};
 use std::env;
 
 #[allow(deprecated)]
@@ -19,8 +18,6 @@ use serenity::model::channel::Message;
 use serenity::model::id::GuildId;
 use serenity::model::id::ChannelId;
 use serenity::prelude::*;
-
-
 
 struct Handler;
 
@@ -103,21 +100,27 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the guild command");
-        let schedule = JobScheduler::new().await.unwrap();
-        let channel_id = ChannelId(
-            env::var("MAIN_CHANNEL_ID")
-            .expect("Expected MAIN_CHANNEL_ID in environment")
-            .parse()
-            .expect("MAIN_CHANNEL_ID must be an integer"));
-        //async closures don't really work, have to make the inner closure create a future and then
-        //let tokio handle executing it
-        schedule.add(
-            Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
-                let rt = tokio::runtime::Runtime::new().unwrap();
-                let future = channel_id.send_message(ctx.http.to_owned(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
-                let _ = rt.block_on(future);
-            }).unwrap(),
-        ).await.unwrap();
+        match JobScheduler::new().await {
+            Ok(schedule) => {
+                let channel_id = ChannelId(
+                    env::var("MAIN_CHANNEL_ID")
+                    .expect("Expected MAIN_CHANNEL_ID in environment")
+                    .parse()
+                    .expect("MAIN_CHANNEL_ID must be an integer"));
+                //async closures don't really work, have to make the inner closure create a future and then
+                //let tokio handle executing it
+                schedule.add(
+                    Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        let future = channel_id.send_message(ctx.http.to_owned(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
+                        let _ = rt.block_on(future);
+                    }).unwrap(),
+                ).await.unwrap();
+            },
+            Err(e) => panic!("Unable to initialize JobScheduler: {}", e),
+        } ;
+
+
     }
 }
 

@@ -5,5 +5,5 @@ pub fn run() -> String {
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command.name("help").description("Information about Blitzcrank and it's commands");
-    return command;
+    command
 } 

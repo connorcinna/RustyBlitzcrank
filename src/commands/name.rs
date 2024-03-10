@@ -1,74 +1,82 @@
+
 use serenity::builder::CreateApplicationCommand;
 use rand::Rng;
 use serde_json;
 
-
-pub fn run() -> String {
-    let words = std::fs::read_to_string("./src/words.json").unwrap();
-    let words = serde_json::from_str::<serde_json::Value>(&words).unwrap();
-    let mut rng = rand::thread_rng();
-    let adjective = words.get("adjectives")
-        .and_then(|value| value.get(rng.gen_range(0..value.as_array()?.len()))).unwrap().to_string();
-    let noun = words.get("nouns")
-        .and_then(|value| value.get(rng.gen_range(0..value.as_array()?.len()))).unwrap().to_string();
-    let verb = words.get("verbs")
-        .and_then(|value| value.get(rng.gen_range(0..value.as_array()?.len()))).unwrap().to_string();
-    let adjective = &adjective[1..adjective.len()-1];
-    let noun = &noun[1..noun.len()-1];
-    let verb = &verb[1..verb.len()-1];
-
-    let num_eos: usize;
-    let s_eos: String;
-    let coin_flip: f32 = rng.gen();    
-    //format: noun + verb + "er" + random numbers
-    if coin_flip < 0.50 {
-        num_eos = remaining_chars(noun.len() + verb.len());
-        s_eos = trailing_num(num_eos);
-        let last_char = noun.to_owned().pop().unwrap();
-        if last_char == 'e' {
-            let total = format!("{noun}{verb}er{s_eos}");
-            return total[..16].to_string();
-        }
-        else {
-            let total = format!("{noun}{verb}er{s_eos}");
-            //return total[..16].to_string();
-            if total.len() > 16 {
-                return total[..16].to_string();
-            }
-            return total; 
-        }
+pub fn run() -> String 
+{ 
+    let mut ret: String;
+    let _size: usize = 16;
+    let json: serde_json::Value;
+    let s: String;
+    let json_file = std::fs::read_to_string("./src/words.json");
+    match json_file
+    {
+        Ok(json_file) => json = serde_json::from_str::<serde_json::Value>(&json_file)
+            .expect("unable to convert file to json"),
+        Err(e) => panic!("unable to find json file: {}", e),
     }
+
+    let noun: String = random_word(json.clone(), String::from("nouns").clone());
+    let mut rng = rand::thread_rng();
+     //format: noun + verb + er + random numbers 
+    if rng.gen::<f32>() >= 0.50
+    {
+        let verb: String = random_word(json.clone(), String::from("verbs").clone());
+        ret = format!("{}{}er", noun, verb);
+        //append random numbers to the end 
+        while ret.len() < _size as usize
+        {
+            ret.push_str(&rng.gen_range(0..10).to_string());
+        }
+        //truncate the string per _size
+        s = match ret.char_indices().nth(_size as usize)
+        {
+            Some((pos, _)) => ret[..pos].to_string(),
+            None => ret,
+        };
+    } 
+
     //format: adjective + noun + random numbers
-    else {
-        num_eos = remaining_chars(adjective.len() + noun.len());
-        s_eos = trailing_num(num_eos);
-        let total = format!("{adjective}{noun}{s_eos}");
-        //return total[..16].to_string();
-        if total.len() > 16 {
-            return total[..16].to_string();
+    else 
+    {
+        let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
+        ret = format!("{}{}", adjective, noun);
+        while ret.len() < _size as usize
+        {
+            ret.push_str(&rng.gen_range(0..10).to_string());
         }
-        return total;
+        //truncate the string per _size
+        s = match ret.char_indices().nth(_size as usize)
+        {
+            Some((pos, _)) => ret[..pos].to_string(),
+            None => ret,
+        };
     }
+    s
 }
 
-pub fn remaining_chars(input: usize) -> usize {
-    if input + 2 >= 16 {
-        return 0;
-    }
-    return 16 - input;
-}
-pub fn trailing_num(input: usize) -> String {
-    let mut s_eos: String = String::from("");
+pub fn random_word(json: serde_json::Value, word_type: String) -> String
+{
+    let word: String;
     let mut rng = rand::thread_rng();
-    for _i in 0..input {
-        let random_num = rng.gen_range(0..10);
-        let random_num = random_num.to_string();
-        s_eos.push_str(&random_num);
+    let word_obj = json.get(&word_type);
+    match word_obj 
+    {
+        Some(v) => 
+        {
+            let word_size = v.as_array().expect("unable to parse words from json").len();
+            word = v.get(rng.gen_range(0..word_size)).expect("unable to index through words in json").to_string();
+        }
+        None => 
+        {
+            return format!("Unable to parse \"{}\" from json", &word_type);
+        }
     }
-    return s_eos;
-
+    String::from(&word[1..word.len()-1])
 }
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("name").description("Generate a random name");
-    return command;
+    command.name("name").description("Generate a random name 16 characters long");
+    command
 } 

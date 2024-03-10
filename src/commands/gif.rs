@@ -41,7 +41,7 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                     format!("\n{}", url)
                 },
                 reqwest::StatusCode::UNAUTHORIZED => {
-                    format!("Error authorizing request")
+                    String::from("Error authorizing request")
                 }
                 _ => {
                     panic!("Unexpected error in Tenor response");
@@ -64,5 +64,5 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
             .kind(CommandOptionType::String)
             .required(true)
         });
-    return command;
+    command
 } 
