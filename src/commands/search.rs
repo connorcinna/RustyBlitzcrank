@@ -9,7 +9,9 @@ use serde_json::Value;
 use reqwest;
 
 
-pub async fn run(options: &[CommandDataOption]) -> String {
+pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send>>;
+
+pub async fn run(options: &[CommandDataOption]) -> Result<String> {
     dotenv().ok();
     let option = options
             .get(0)
@@ -29,21 +31,19 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .await
             .unwrap();
         let json_result: Value = serde_json::from_str(&response).unwrap();
-        println!("json_result: {}", serde_json::to_string_pretty(&json_result).unwrap());
-        //i guess google changed their API result payload? it works now
+        println!("{}", serde_json::to_string_pretty(&json_result).unwrap());
         match json_result.get("queries")
             .and_then(|value| value.get("nextPage"))
             .and_then(|value| value.get(0))
             .and_then(|value| value.get("totalResults")) {
             Some(result_num) => {
-                println!("Some(result_num");
                 if result_num == "0" {
-                    return String::from("Fuck");
+                    return Err(Box::new(std::fmt::Error));
                 }
                 //else, normal case
             }
             None => {
-                return String::from("Fuck");
+                return Err(Box::new(std::fmt::Error));
             }
         }
         let result = json_result.get("items")
@@ -51,11 +51,11 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             .and_then(|value| value.get("link"))
             .unwrap()
             .to_string();
-        format!("\n{}", &result[1..result.len()-1])
+        Ok(format!("\n{}", &result[1..result.len()-1]))
     }
     //dont think this is ever reached?
     else {
-        String::from("Fuck")
+        return Err(Box::new(std::fmt::Error));
     }
 }
 

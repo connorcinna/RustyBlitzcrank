@@ -21,6 +21,7 @@ use serenity::model::id::ChannelId;
 use serenity::prelude::*;
 
 
+
 struct Handler;
 
 #[async_trait]
@@ -102,17 +103,19 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the guild command");
-
         let schedule = JobScheduler::new().await.unwrap();
+        let channel_id = ChannelId(
+            env::var("MAIN_CHANNEL_ID")
+            .expect("Expected MAIN_CHANNEL_ID in environment")
+            .parse()
+            .expect("MAIN_CHANNEL_ID must be an integer"));
+        //async closures don't really work, have to make the inner closure create a future and then
+        //let tokio handle executing it
         schedule.add(
             Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
-                let channel_id = ChannelId(
-                    env::var("MAIN_CHANNEL_ID")
-                    .expect("Expected MAIN_CHANNEL_ID in environment")
-                    .parse()
-                    .expect("MAIN_CHANNEL_ID must be an integer"));
-                channel_id.send_message(&ctx.http, |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"))
-                    .await;
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                let future = channel_id.send_message(ctx.http.to_owned(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
+                let _ = rt.block_on(future);
             }).unwrap(),
         ).await.unwrap();
     }
@@ -161,8 +164,9 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction) {
             println!("Cannot respond to slash command: {}", e);
         }
     }
-
 }
+
+//handle interactions that require doing some extra stuff other than just sending to the channel
 async fn special_interaction(ctx: Context, interaction: &Interaction) {
     if let Interaction::ApplicationCommand(command) = &interaction {
         let cmd_str = command.data.name.as_str();
@@ -174,6 +178,9 @@ async fn special_interaction(ctx: Context, interaction: &Interaction) {
         }
     }
 }
+
+//handle deferring the message, wait for the response from API call, and send it to the channel
+//or, if the API didn't find an image link, send the funny blitzcrank picture
 #[allow(deprecated)]
 async fn search_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
     command.create_interaction_response(&ctx.http, |response| {
@@ -181,24 +188,12 @@ async fn search_interaction(ctx: Context, command: &ApplicationCommandInteractio
         .kind(InteractionResponseType::DeferredChannelMessageWithSource)
         .interaction_response_data(|message| message.content(command.data.name.as_str()))
     }).await.unwrap();
-    let res = commands::search::run(&command.data.options).await;
-    if res == "Fuck" { //google didn't find anything
-        let channel_id = command.channel_id;
-        let mut img_path = std::env::current_dir().unwrap();
-        img_path.push("lol.png");
-        let img_file = File::open(img_path).await.unwrap();
-        let files = vec![(&img_file, "lol.png")];
-        //funny blitzcrank picture
-        //empty message closure to satisfy function
-        let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
-        //get rid of the "bot is thinking..." message
-        command.delete_original_interaction_response(&ctx.http).await.unwrap();
+    if let Ok(res) = commands::search::run(&command.data.options).await {
+        command.edit_original_interaction_response(&ctx.http, |response| response.content(res)).await.unwrap();
     }
-    else { //normal case
-        command.edit_original_interaction_response(&ctx.http, |response| {
-            response.content(res)
-        }).await.unwrap();
-    }   
+    else {
+        no_results(ctx, command).await;
+    }
 }
 
 #[allow(deprecated)]
@@ -240,6 +235,18 @@ async fn password_interaction(ctx: Context, command: &ApplicationCommandInteract
         response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
     }).await.unwrap();
 }
+#[allow(deprecated)]
+async fn no_results(ctx: Context, command: &ApplicationCommandInteraction) {
+    let channel_id = command.channel_id;
+    let mut img_path = std::env::current_dir().unwrap();
+    img_path.push("lol.png");
+    let img_file = File::open(img_path).await.unwrap();
+    let files = vec![(&img_file, "lol.png")];
+    //empty message closure to satisfy function
+    let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
+    //get rid of the "bot is thinking..." message
+    command.delete_original_interaction_response(&ctx.http).await.unwrap();
+}
 
 #[tokio::main]
 async fn main() {
@@ -259,10 +266,4 @@ async fn main() {
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
-//    let schedule = Schedule::from_str( "0 0 10 * *  Fri *").unwrap();
-//    for datetime in schedule.upcoming(Local).take(10) {
-//        println!("-> {}", datetime);
-//        friday(datetime);
-//    }
-
 }
