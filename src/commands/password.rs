@@ -29,9 +29,9 @@ pub fn run(options: &[CommandDataOption]) -> String
     }
 
     let mut noun: String = random_word(json.clone(), String::from("nouns").clone());
-    let mut rng = rand::thread_rng();
+    let rng = rand::thread_rng();
      //format: noun + verb + er + random numbers
-    if rng.gen::<f32>() >= 0.50
+    if coinflip(rng.clone())
     {
         let mut verb: String = random_word(json.clone(), String::from("verbs").clone());
 
@@ -76,16 +76,16 @@ pub fn random_word(json: serde_json::Value, word_type: String) -> String
     String::from(&word[1..word.len()-1])
 }
 
-pub fn randomize_case(word: &String, mut rng: ThreadRng)  -> String
+pub fn randomize_case(word: &String, rng: ThreadRng)  -> String
 {
     let mut ret : String = Default::default();
     for c in word.chars()
     {
-        if rng.gen::<f32>() >= 0.50
+        if coinflip(rng.clone())
         {
             ret.push(c.to_ascii_uppercase());
         }
-        else 
+        else
         {
             ret.push(c);
         }
@@ -105,6 +105,11 @@ pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
         None => word.to_string(),
     };
     s
+}
+
+pub fn coinflip(mut rng: ThreadRng) -> bool
+{
+    rng.gen::<f32>() >= 0.50
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
