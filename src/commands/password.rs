@@ -31,13 +31,13 @@ pub fn run(options: &[CommandDataOption]) -> String
     let mut noun: String = random_word(json.clone(), String::from("nouns").clone());
     let rng = rand::thread_rng();
      //format: noun + verb + er + random numbers
-    if coinflip(rng.clone())
+    if coinflip()
     {
         let mut verb: String = random_word(json.clone(), String::from("verbs").clone());
 
         //randomly capitalize some letters otherwise everything is lowercase
-        noun = randomize_case(&noun, rng.clone());
-        verb = randomize_case(&verb, rng.clone());
+        noun = randomize_case(&noun);
+        verb = randomize_case(&verb);
 
         ret = format!("{}{}er", noun, verb);
         s = finalize(ret.clone(), _size, rng.clone());
@@ -47,8 +47,8 @@ pub fn run(options: &[CommandDataOption]) -> String
     {
         let mut adjective: String = random_word(json.clone(), String::from("adjectives").clone());
 
-        noun = randomize_case(&noun, rng.clone());
-        adjective = randomize_case(&adjective, rng.clone());
+        noun = randomize_case(&noun);
+        adjective = randomize_case(&adjective);
 
         ret = format!("{}{}", adjective, noun);
         s = finalize(ret.clone(), _size, rng.clone());
@@ -76,12 +76,12 @@ pub fn random_word(json: serde_json::Value, word_type: String) -> String
     String::from(&word[1..word.len()-1])
 }
 
-pub fn randomize_case(word: &String, rng: ThreadRng)  -> String
+pub fn randomize_case(word: &String)  -> String
 {
     let mut ret : String = Default::default();
     for c in word.chars()
     {
-        if coinflip(rng.clone())
+        if coinflip()
         {
             ret.push(c.to_ascii_uppercase());
         }
@@ -107,8 +107,9 @@ pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
     s
 }
 
-pub fn coinflip(mut rng: ThreadRng) -> bool
+pub fn coinflip() -> bool
 {
+    let mut rng = rand::thread_rng();
     rng.gen::<f32>() >= 0.50
 }
 
