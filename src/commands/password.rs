@@ -95,9 +95,18 @@ pub fn randomize_case(word: &String)  -> String
 
 pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
 {
+    let special_chars = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "?", "[", "]"];
     while word.len() < _size as usize
     {
-        word.push_str(&rng.gen_range(0..10).to_string());
+        let index: usize = rng.gen_range(0..special_chars.len());
+        if coinflip()
+        {
+            word.push_str(&index.to_string());
+        }
+        else 
+        {
+            word.push_str(special_chars[index]);
+        }
     }
     let s = match word.char_indices().nth(_size as usize)
     {
