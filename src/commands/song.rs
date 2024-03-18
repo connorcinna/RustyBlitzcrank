@@ -22,12 +22,10 @@ pub async fn run(options: &[CommandDataOption]) -> String {
 			None,
 			None,
 			None,
-			None).await;
-		let song_string= match song {
-			Ok(res) => res,
-			Err(e) => panic!("Error searching for song: {:?}", e), 
-		};
-		if let SearchResult::Tracks(page) = song_string {
+			None)
+			.await
+			.expect("Expected SearchResult API response from Spotify");
+		if let SearchResult::Tracks(page) = song {
 			if let Some(track) = page.items[0].external_urls.get("spotify") {
 				return track.to_string();
 			}
