@@ -8,15 +8,19 @@ use dotenv::dotenv;
 use serde_json::Value;
 use serde_json::json;
 use std::env;
+use std::time::Duration;
 use reqwest;
+
+static TIMEOUT : u64 = 30;
+static SYSTEM_PROMPT : &str = "You are the robot Blitzcrank from League of Legends. Answer all questions to the best of your ability, and act like Blitzcrank when you answer them.";
 
 //trim some markdown that doesn't work with discord specifically
 pub fn format_string(output: String) -> String
 {
     //trim the quotation marks
     let output = &output[1..output.len()-1];
-    //                  this is retarded but it works for discord because it doesn't handle newline
-    //                  characters right
+    //this is retarded but it works for discord because it doesn't handle newline
+    //characters right
     let output = output.replace("\\n", " 
     ");
     //the model tries to escape all quote characters in code, which is wrong, so
@@ -42,21 +46,34 @@ pub async fn run(options: &[CommandDataOption]) -> String {
         .expect("Expected prompt option");
     if let CommandDataOptionValue::String(query) = option {
             let url: String = format!("http://{}:{}/v1/chat/completions", server_ip, server_port);
-            let client = reqwest::Client::new();
             let json = &json!(
             {
                 "model": model,
-                "messages": [ {"role" : "system", "content": query} ],
+                "messages": 
+                    [ 
+                        {"role" : "system", "content": SYSTEM_PROMPT},
+                        {"role" : "user", "content": query},
+                    ],
                 "temperature" : 1,
                 "max_tokens": 1024,
                 "stream" : false,
             });
+            let client = reqwest::Client::builder()
+                .timeout(Duration::from_secs(TIMEOUT))
+                .build()
+                .unwrap();
+            let mut success : bool = false;
             let res = client
                 .post(url.clone())
                 .json(json)
                 .send()
                 .await
-                .expect("Unable to connect to LLM server, Connor's desktop probably isn't running");
+                .and_then(|v| { success = true; Ok(v) });
+            if !success
+            {
+                return String::from("Unable to connect to LLM server, Connor's desktop probably isn't running");
+            }
+            let res = res.unwrap();
             match res.status() {
                 reqwest::StatusCode::OK => {
                     println!("Got statuscode OK");
@@ -71,8 +88,8 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         .unwrap()
                         .to_string();
                     println!("{:?}", json_result);
-                    let output = format_string(output);
-                    format!("{}", output)
+                    format_string(output)
+//                    format!("{}", output)
                 },
                 reqwest::StatusCode::UNAUTHORIZED => {
                     String::from("Error authorizing request")
