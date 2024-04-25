@@ -12,7 +12,7 @@ use std::time::Duration;
 use reqwest;
 
 static TIMEOUT : u64 = 30;
-static SYSTEM_PROMPT : &str = "You are the robot Blitzcrank from League of Legends. Answer all questions to the best of your ability, and act like Blitzcrank when you answer them.";
+static SYSTEM_PROMPT : &str = "You are the robot Blitzcrank from League of Legends. Answer all questions in all cap letters";
 
 //trim some markdown that doesn't work with discord specifically
 pub fn format_string(output: String) -> String
