@@ -1,5 +1,10 @@
 mod commands;
-pub const MAX_MSG_SZ : usize = 2000;
+mod websites;
+mod constants;
+//pub const MAX_MSG_SZ : usize = 2000;
+
+use crate::websites::{Website, LinkFix};
+use crate::constants::MAX_MSG_SZ;
 
 extern crate dotenv;
 
@@ -21,18 +26,54 @@ use serenity::prelude::*;
 
 struct Handler;
 
+//TODO: find and replace on string to replace the old_link with new_link
+async fn fix_links(old_link: String, new_link: String, msg: &Message)
+{
+    let mut final_link = msg.content.to_owned();
+    let prepend_str = format!("Posted by {}\n", msg.author.name);
+//    if some_idx.1 == "twitter" { //twitter link
+//        final_link.insert_str(some_idx.0+8, "c.vx"); //guaranteed to not panic, already checked string size
+//    }
+//    else { //x link
+//        final_link.insert_str(some_idx.0+8, "c.v");
+//        final_link.insert_str(some_idx.0+12, "twitter");
+//    }
+//    final_link.insert_str(0, &prepend_str);
+//
+//    msg.channel_id.say(&ctx.http, final_link).await.unwrap();
+//    msg.delete(&ctx.http).await.expect("Unable to delete message");
+
+    
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
+        let links : [LinkFix; 6] = 
+        [
+            LinkFix {website: Website::Twitter, old_link: String::from("https://twitter.com"), new_link: String::from("https://vxtwitter.com")},
+            LinkFix {website: Website::X, old_link: String::from("https://x.com"), new_link: String::from("https://c.vxtwitter.com")},
+            LinkFix {website: Website::Tiktok, old_link: String::from("https://tiktok.com"), new_link: String::from("https://vxtiktok.com")},
+            LinkFix {website: Website::Instagram, old_link: String::from("https://instagram.com"), new_link: String::from("https://ddinstagram.com")},
+            LinkFix {website: Website::Reddit, old_link: String::from("https://reddit.com"), new_link: String::from("https://vxreddit.com")},
+            LinkFix {website: Website::Youtube, old_link: String::from("https://youtube.com"), new_link: String::from("https://youtu.be.com")},
+        ];
+        for link in links
+        {
+            if msg.content.find(&link.old_link).is_some()
+            {
+                fix_links(link.old_link.clone(), link.new_link.clone(), &msg);
+            }
+        }
         let idx_twitter_link = msg.content.find("https://twitter.com");
         let idx_x_link = msg.content.find("https://x.com");
         //have to pay for twitter api now so lol
-        if let Some(some_idx) = idx_twitter_link {
-            vxtwitter(ctx, &msg, (some_idx, "twitter")).await;
-        }
-        else if let Some(some_idx) = idx_x_link {
-            vxtwitter(ctx, &msg, (some_idx, "x")).await;
-        }
+//        if let Some(some_idx) = idx_twitter_link {
+//            vxtwitter(ctx, &msg, (some_idx, "twitter")).await;
+//        }
+//        else if let Some(some_idx) = idx_x_link {
+//            vxtwitter(ctx, &msg, (some_idx, "x")).await;
+//        }
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -125,22 +166,7 @@ impl EventHandler for Handler {
 }
 
 async fn vxtwitter(ctx: Context, msg: &Message, some_idx: (usize, &str)) {
-    let mut final_link = msg.content.to_owned();
-    let prepend_str = format!("Posted by {}\n", msg.author.name);
-    //TODO: maybe do some fancy url object magic to change the url string instead of just using it
-    //like a string
-    if some_idx.1 == "twitter" { //twitter link
-        final_link.insert_str(some_idx.0+8, "c.vx"); //guaranteed to not panic, already checked string size
     }
-    else { //x link
-        final_link.insert_str(some_idx.0+8, "c.v");
-        final_link.insert_str(some_idx.0+12, "twitter");
-    }
-    final_link.insert_str(0, &prepend_str);
-
-    msg.channel_id.say(&ctx.http, final_link).await.unwrap();
-    msg.delete(&ctx.http).await.expect("Unable to delete message");
-}
 
 async fn normal_interaction(ctx: Context, interaction: &Interaction) {
     if let Interaction::ApplicationCommand(command) = &interaction {
@@ -253,6 +279,8 @@ async fn no_results(ctx: Context, command: &ApplicationCommandInteraction) {
 
 #[tokio::main]
 async fn main() {
+
+
     dotenv().ok();
     // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
