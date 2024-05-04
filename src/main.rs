@@ -39,16 +39,14 @@ async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Cont
 impl EventHandler for Handler {
 
     async fn message(&self, ctx: Context, msg: Message) {
-        let links : [LinkFix; 6] = 
+        let links : [LinkFix; 5] = 
         [
             LinkFix {website: Website::Twitter, old_link: String::from("https://twitter.com"), new_link: String::from("https://vxtwitter.com")},
             LinkFix {website: Website::X, old_link: String::from("https://x.com"), new_link: String::from("https://c.vxtwitter.com")},
             LinkFix {website: Website::Tiktok, old_link: String::from("https://www.tiktok.com"), new_link: String::from("https://vxtiktok.com")},
             LinkFix {website: Website::Instagram, old_link: String::from("https://www.instagram.com"), new_link: String::from("https://ddinstagram.com")},
             LinkFix {website: Website::Reddit, old_link: String::from("https://www.reddit.com"), new_link: String::from("https://vxreddit.com")},
-            LinkFix {website: Website::Youtube, old_link: String::from("https://www.youtube.com"), new_link: String::from("https://youtu.be.com")},
         ];
-        println!("{}", msg.content);
         for link in links
         {
             if msg.content.find(&link.old_link).is_some()
@@ -136,15 +134,13 @@ impl EventHandler for Handler {
                 schedule.add(
                     Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
                         let rt = tokio::runtime::Runtime::new().unwrap();
-                        let future = channel_id.send_message(ctx.http.to_owned(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
+                        let future = channel_id.send_message(ctx.http.clone(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
                         let _ = rt.block_on(future);
                     }).unwrap(),
                 ).await.unwrap();
             },
             Err(e) => panic!("Unable to initialize JobScheduler: {}", e),
         } ;
-
-
     }
 }
 

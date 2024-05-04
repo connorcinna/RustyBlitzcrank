@@ -5,7 +5,6 @@ pub enum Website
     Tiktok,
     Instagram,
     Reddit,
-    Youtube,
 }
 
 pub struct LinkFix
@@ -14,5 +13,3 @@ pub struct LinkFix
     pub old_link: String,
     pub new_link: String,
 }
-
-
