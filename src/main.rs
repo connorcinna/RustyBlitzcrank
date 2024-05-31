@@ -244,9 +244,9 @@ async fn password_interaction(ctx: Context, command: &ApplicationCommandInteract
 async fn no_results(ctx: Context, command: &ApplicationCommandInteraction) {
     let channel_id = command.channel_id;
     let mut img_path = std::env::current_dir().unwrap();
-    img_path.push("lol.png");
+    img_path.push("resources/lol.png");
     let img_file = File::open(img_path).await.unwrap();
-    let files = vec![(&img_file, "lol.png")];
+    let files = vec![(&img_file, "resources/lol.png")];
     //empty message closure to satisfy function
     let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
     //get rid of the "bot is thinking..." message

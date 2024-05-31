@@ -5,8 +5,6 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use serde_json;
 
-//TODO: Current the exact same as commands::name, need to add some special password specific stuff
-//variable casing, special characters other than 0-9, etc.
 pub fn run(options: &[CommandDataOption]) -> String
 {
     let mut _size: usize = 0;
@@ -20,7 +18,7 @@ pub fn run(options: &[CommandDataOption]) -> String
         .as_ref()
         .expect("Expected number of characters");
     if let CommandDataOptionValue::Integer(size) = option { _size = *size as usize; }
-    let json_file = std::fs::read_to_string("./src/words.json");
+    let json_file = std::fs::read_to_string("./resources/words.json");
     match json_file
     {
         Ok(json_file) => json = serde_json::from_str::<serde_json::Value>(&json_file)

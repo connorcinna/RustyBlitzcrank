@@ -9,7 +9,7 @@ pub fn run() -> String
     let _size: usize = 16;
     let json: serde_json::Value;
     let s: String;
-    let json_file = std::fs::read_to_string("./src/words.json");
+    let json_file = std::fs::read_to_string("./resources/words.json");
     match json_file
     {
         Ok(json_file) => json = serde_json::from_str::<serde_json::Value>(&json_file)
