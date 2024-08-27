@@ -150,7 +150,7 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction) {
         let content = match cmd_str {
             "roll" => commands::roll::run(&command.data.options),
             "gif" => commands::gif::run(&command.data.options).await,
-            "name" => commands::name::run(),
+            "name" => commands::name::run(&command.data.options),
             "vid" => commands::vid::run(&command.data.options).await,
             "jerma" => commands::jerma::run(),
             "help" => commands::help::run(),

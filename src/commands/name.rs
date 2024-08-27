@@ -1,13 +1,43 @@
 
+use std::collections::btree_map::Range;
+
 use serenity::builder::CreateApplicationCommand;
 use rand::Rng;
 use serde_json;
 
-pub fn run() -> String 
+pub fn run(options: &[CommandDataOption]) -> String 
 { 
     let mut ret: String;
     let _size: usize = 16;
-    let json: serde_json::Value;
+    match options.get(0)
+    {
+        Some(value) => 
+        {
+            let option = value.resolved.as_ref().unwrap();
+            if let &CommandDataOptionValue::numbers(num) = option 
+            {
+                for i in Range(..num)
+                {
+                    //ret += function_that_returns_total_string
+                    //ret += '\n'
+                }
+            }
+
+        }
+        None() =>
+        {
+            //ret = function_that_returns_total_string
+
+        }
+
+    }
+    let option = options
+        .get(0)
+        .expect("Expected query option")
+        .resolved
+        .as_ref()
+        .expect("Expected query option");
+        let json: serde_json::Value;
     let s: String;
     let json_file = std::fs::read_to_string("./resources/words.json");
     match json_file
