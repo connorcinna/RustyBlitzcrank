@@ -19,10 +19,8 @@ pub fn run(options: &[CommandDataOption]) -> String
             let option = value.resolved.as_ref().unwrap();
             if let &CommandDataOptionValue::Integer(num) = option
             {
-                println!("Number read as {num}");
-                for i in 0..num
+                for _ in 0..num
                 {
-                    println!("Working on name number {i}");
                     name += &generate_name();
                     name += "\n";
                 }
@@ -36,7 +34,6 @@ pub fn run(options: &[CommandDataOption]) -> String
         //only one
         None =>
         {
-            println!("No number passed in");
             name = generate_name();
             return name;
         }
