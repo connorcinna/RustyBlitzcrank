@@ -100,6 +100,7 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::ping_voice::register(command))
                 .create_application_command(|command| commands::ai::register(command))
                 .create_application_command(|command| commands::password::register(command))
+                .create_application_command(|command| commands::freaky::register(command))
         })
         .await
         .expect("Could not add the guild command");
@@ -118,9 +119,10 @@ impl EventHandler for Handler {
                 .create_application_command(|command| commands::ping_voice::register(command))
                 .create_application_command(|command| commands::ai::register(command))
                 .create_application_command(|command| commands::password::register(command))
+                .create_application_command(|command| commands::freaky::register(command))
         })
         .await
-        .expect("Could not add the guild command");
+        .expect("Could not add the test guild command");
         match JobScheduler::new().await {
             Ok(schedule) => {
                 let channel_id = ChannelId(
@@ -155,6 +157,7 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction) {
             "help" => commands::help::run(),
             "song" => commands::song::run(&command.data.options).await,
             "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
+            "freaky" => commands::freaky::run(&command.data.options),
             _ => "Not implemented".to_string(),
         };
         if let Err(e) = command

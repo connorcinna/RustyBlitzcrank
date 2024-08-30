@@ -1,4 +1,3 @@
-
 use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
 use serenity::model::application::command::CommandOptionType;
 use crate::common::helpers::coinflip;
