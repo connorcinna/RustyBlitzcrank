@@ -1,9 +1,8 @@
 mod commands;
+mod common;
 mod websites;
-mod constants;
-
 use crate::websites::{Website, LinkFix};
-use crate::constants::MAX_MSG_SZ;
+use crate::common::constants::MAX_MSG_SZ;
 
 extern crate dotenv;
 
