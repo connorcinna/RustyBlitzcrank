@@ -44,19 +44,30 @@ pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> Stri
 {
     let verb: String = random_word(json.clone(), String::from("verbs").clone());
     let mut rng = rand::thread_rng();
-    let mut ret = format!("{}{}er", noun, verb);
+    let mut ret : String;
+    let last_chars = 
+    {
+        let split_pos = verb.char_indices().nth_back(2).unwrap().0;
+        &verb[..split_pos]
+    };
+    if last_chars == "er"
+    {
+        ret = format!("{}{}", noun, verb);
+    }
+    else if verb.chars().last().unwrap() == 'e'
+    {
+        ret = format!("{}{}r", noun, verb);
+    }
+    else 
+    {
+        ret = format!("{}{}er", noun, verb);
+    }
     //append random numbers to the end 
     while ret.len() < _SIZE as usize
     {
         ret.push_str(&rng.gen_range(0..10).to_string());
     }
-    //truncate the string per _SIZE
-    let s = match ret.char_indices().nth(_SIZE as usize)
-    {
-        Some((pos, _)) => ret[..pos].to_string(),
-        None => ret,
-    };
-    return String::from(s);
+    return String::from(ret);
 }
 
 //format: adjective + noun + random numbers
@@ -69,13 +80,7 @@ pub fn generate_format_two(json: serde_json::value::Value, noun: String) -> Stri
     {
         ret.push_str(&rng.gen_range(0..10).to_string());
     }
-    //truncate the string per _SIZE
-    let s = match ret.char_indices().nth(_SIZE as usize)
-    {
-        Some((pos, _)) => ret[..pos].to_string(),
-        None => ret,
-    };
-    return String::from(s);
+    return String::from(ret);
 }
 
 pub fn generate_name() -> String
@@ -85,12 +90,10 @@ pub fn generate_name() -> String
     let noun: String = random_word(json.clone(), String::from("nouns").clone());
     if coinflip()
     {
-        println!("Generating format 1");
         s = generate_format_one(json, noun);
     }
     else
     {
-        println!("Generating format 2");
         s = generate_format_two(json, noun);
     }
     s
