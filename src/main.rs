@@ -10,6 +10,7 @@ use dotenv::dotenv;
 use tokio::fs::File;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use std::env;
+//test comment to check hook
 
 #[allow(deprecated)]
 use serenity::model::interactions::application_command::ApplicationCommandInteraction;
