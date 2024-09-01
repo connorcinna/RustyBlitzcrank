@@ -2,15 +2,12 @@ mod commands;
 mod common;
 mod websites;
 use crate::websites::{Website, LinkFix};
-use crate::common::constants::MAX_MSG_SZ;
-
 extern crate dotenv;
 
 use dotenv::dotenv;
 use tokio::fs::File;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use std::env;
-//test comment to check hook
 
 #[allow(deprecated)]
 use serenity::model::interactions::application_command::ApplicationCommandInteraction;
@@ -36,9 +33,10 @@ async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Cont
 }
 
 #[async_trait]
-impl EventHandler for Handler {
-
-    async fn message(&self, ctx: Context, msg: Message) {
+impl EventHandler for Handler
+{
+    async fn message(&self, ctx: Context, msg: Message)
+    {
         let links : [LinkFix; 5] = 
         [
             LinkFix {website: Website::Twitter, old_link: String::from("https://twitter.com"), new_link: String::from("https://vxtwitter.com")},
@@ -57,10 +55,13 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
-        if let Interaction::ApplicationCommand(command) = &interaction {
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) 
+    {
+        if let Interaction::ApplicationCommand(command) = &interaction 
+        {
             let cmd_str = command.data.name.as_str();
-            match cmd_str {
+            match cmd_str 
+            {
                "search" => special_interaction(ctx, &interaction).await,
                "ai" => special_interaction(ctx, &interaction).await,
                "password" => special_interaction(ctx, &interaction).await,
@@ -69,7 +70,8 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn ready(&self, ctx: Context, ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) 
+    {
         println!("{} is connected!", ready.user.name);
         ctx.set_activity(Activity::watching("Jerma985")).await;
 
@@ -80,7 +82,8 @@ impl EventHandler for Handler {
                 .parse()
                 .expect("GUILD_ID must be an integer"),
         );
-        let test_guild_id = GuildId(
+        let test_guild_id = GuildId
+        (
             env::var("TEST_GUILD_ID")
                 .expect("Expected GUILD_ID in environment")
                 .parse()
@@ -88,7 +91,8 @@ impl EventHandler for Handler {
         );
 
         //add commands to the main server
-        let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
+        let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| 
+        {
             commands
                 .create_application_command(|command| commands::roll::register(command))
                 .create_application_command(|command| commands::gif::register(command))
@@ -107,7 +111,8 @@ impl EventHandler for Handler {
         .expect("Could not add the guild command");
 
         //add commands to the test server
-        let _test_guild_commands = GuildId::set_application_commands(&test_guild_id, &ctx.http, |commands| {
+        let _test_guild_commands = GuildId::set_application_commands(&test_guild_id, &ctx.http, |commands| 
+        {
             commands
                 .create_application_command(|command| commands::roll::register(command))
                 .create_application_command(|command| commands::gif::register(command))
@@ -124,8 +129,10 @@ impl EventHandler for Handler {
         })
         .await
         .expect("Could not add the test guild command");
-        match JobScheduler::new().await {
-            Ok(schedule) => {
+        match JobScheduler::new().await 
+        {
+            Ok(schedule) => 
+            {
                 let channel_id = ChannelId(
                     env::var("MAIN_CHANNEL_ID")
                     .expect("Expected MAIN_CHANNEL_ID in environment")
@@ -134,7 +141,8 @@ impl EventHandler for Handler {
                 //async closures don't really work, have to make the inner closure create a future and then
                 //let tokio handle executing it
                 schedule.add(
-                    Job::new("0 0 14 * *  Fri *", move |_uuid, _l| { // 2PM UTC => 9AM EST
+                    Job::new("0 0 14 * *  Fri *", move |_uuid, _l| // 2PM UTC => 9AM EST
+                    { 
                         let rt = tokio::runtime::Runtime::new().unwrap();
                         let future = channel_id.send_message(ctx.http.clone(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
                         let _ = rt.block_on(future);
@@ -142,12 +150,14 @@ impl EventHandler for Handler {
                 ).await.unwrap();
             },
             Err(e) => panic!("Unable to initialize JobScheduler: {}", e),
-        } ;
+        };
     }
 }
 
-async fn normal_interaction(ctx: Context, interaction: &Interaction) {
-    if let Interaction::ApplicationCommand(command) = &interaction {
+async fn normal_interaction(ctx: Context, interaction: &Interaction) 
+{
+    if let Interaction::ApplicationCommand(command) = &interaction 
+    {
         let cmd_str = command.data.name.as_str();
         let content = match cmd_str {
             "roll" => commands::roll::run(&command.data.options),
@@ -161,13 +171,13 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction) {
             "freaky" => commands::freaky::run(&command.data.options),
             _ => "Not implemented".to_string(),
         };
-        if let Err(e) = command
-            .create_interaction_response(&ctx.http, |response| {
-                response
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|message| message.content(content))
-            })
-            .await
+        if let Err(e) = command.create_interaction_response(&ctx.http, |response| 
+        {
+            response
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|message| message.content(content))
+        })
+        .await
         {
             println!("Cannot respond to slash command: {}", e);
         }
@@ -175,76 +185,30 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction) {
 }
 
 //handle interactions that require doing some extra stuff other than just sending to the channel
-async fn special_interaction(ctx: Context, interaction: &Interaction) {
-    if let Interaction::ApplicationCommand(command) = &interaction {
+async fn special_interaction(ctx: Context, interaction: &Interaction) 
+{
+    if let Interaction::ApplicationCommand(command) = &interaction 
+    {
         let cmd_str = command.data.name.as_str();
-        match cmd_str {
-           "search" => search_interaction(ctx, command).await,
-           "ai" => ai_interaction(ctx, command).await,
-           "password" => password_interaction(ctx, command).await,
+        match cmd_str 
+        {
+           "search" => 
+           {
+               if !commands::search::interaction(&ctx, command).await  
+               {
+                   no_results(ctx, command).await;
+               }
+           },
+           "ai" => commands::ai::interaction(ctx, command).await,
+           "password" => commands::password::interaction(ctx, command).await,
            &_ => println!("Unimplemented"),
         }
     }
 }
 
-//handle deferring the message, wait for the response from API call, and send it to the channel
-//or, if the API didn't find an image link, send the funny blitzcrank picture
 #[allow(deprecated)]
-async fn search_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
-    command.create_interaction_response(&ctx.http, |response| {
-    response
-        .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-        .interaction_response_data(|message| message.content(command.data.name.as_str()))
-    }).await.unwrap();
-    if let Ok(res) = commands::search::run(&command.data.options).await {
-        command.edit_original_interaction_response(&ctx.http, |response| response.content(res)).await.unwrap();
-    }
-    else {
-        no_results(ctx, command).await;
-    }
-}
-
-#[allow(deprecated)]
-async fn ai_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
-    command.create_interaction_response(&ctx.http, |response| {
-            response
-                .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                .interaction_response_data(|message| message.content(command.data.name.as_str()))
-            }).await.unwrap();
-    let res = commands::ai::run(&command.data.options).await;
-    if res.chars().count() >= MAX_MSG_SZ {
-        let char_vec: Vec<char> = res.chars().collect();
-        let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
-        let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
-        command.edit_original_interaction_response(&ctx.http, |response| {
-            response.content(&first_message_str)
-        }).await.unwrap();
-        command.create_followup_message(&ctx.http, |response| {
-            response.content(&second_message_str)
-        }).await.unwrap();
-    }
-    else {
-        command.edit_original_interaction_response(&ctx.http, |response| {
-            response.content(&res)
-        }).await.unwrap();
-    }
-}
-#[allow(deprecated)]
-async fn password_interaction(ctx: Context, command: &ApplicationCommandInteraction) {
-    let res = commands::password::run(&command.data.options);
-    let dm = command.user.direct_message(&ctx, |message| {
-        message.content(format!("||{}||", res))
-    }).await;
-    match dm {
-        Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
-        Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
-    }
-    command.create_interaction_response(&ctx.http, |response| {
-        response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
-    }).await.unwrap();
-}
-#[allow(deprecated)]
-async fn no_results(ctx: Context, command: &ApplicationCommandInteraction) {
+async fn no_results(ctx: Context, command: &ApplicationCommandInteraction)
+{
     let channel_id = command.channel_id;
     let mut img_path = std::env::current_dir().unwrap();
     img_path.push("resources/lol.png");
@@ -257,9 +221,8 @@ async fn no_results(ctx: Context, command: &ApplicationCommandInteraction) {
 }
 
 #[tokio::main]
-async fn main() {
-
-
+async fn main()
+{
     dotenv().ok();
     // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
@@ -273,7 +236,8 @@ async fn main() {
     //
     // Shards will automatically attempt to reconnect, and will perform
     // exponential backoff until it reconnects.
-    if let Err(why) = client.start().await {
+    if let Err(why) = client.start().await
+    {
         println!("Client error: {:?}", why);
     }
 }

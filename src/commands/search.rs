@@ -1,6 +1,11 @@
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::command::CommandOptionType;
 use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
+#[allow(deprecated)]
+use serenity::model::interactions::application_command::ApplicationCommandInteraction;
+use serenity::model::application::interaction::InteractionResponseType;
+use serenity::prelude::*;
+
 
 extern crate dotenv;
 extern crate serde_json;
@@ -70,4 +75,26 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
             .required(true)
         });
     return command;
+}
+
+//handle deferring the message, wait for the response from API call, and send it to the channel
+//or, if the API didn't find an image link, send the funny blitzcrank picture
+#[allow(deprecated)]
+pub async fn interaction(ctx: &Context, command: &ApplicationCommandInteraction) -> bool
+{
+    command.create_interaction_response(&ctx.http, |response| 
+    {
+        response
+            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+            .interaction_response_data(|message| message.content(command.data.name.as_str()))
+    }).await.unwrap();
+    if let Ok(res) = run(&command.data.options).await 
+    {
+        command.edit_original_interaction_response(&ctx.http, |response| response.content(res)).await.unwrap();
+        return true;
+    }
+    else 
+    {
+        return false;
+    }
 }

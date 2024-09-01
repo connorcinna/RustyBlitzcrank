@@ -5,6 +5,12 @@ use rand::Rng;
 use rand::rngs::ThreadRng;
 use serde_json;
 
+#[allow(deprecated)]
+use serenity::model::interactions::application_command::ApplicationCommandInteraction;
+use serenity::prelude::*;
+
+
+//TODO: refactor this and name.rs to some common file
 pub fn run(options: &[CommandDataOption]) -> String
 {
     let mut _size: usize = 0;
@@ -120,7 +126,8 @@ pub fn coinflip() -> bool
     rng.gen::<f32>() >= 0.50
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand 
+{
     command.name("password").description("Generate a random password between 16-32 characters")
         .create_option(|option|
                        {
@@ -131,4 +138,23 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                                 .required(true)
                        });
     command
+}
+
+#[allow(deprecated)]
+pub async fn interaction(ctx: Context, command: &ApplicationCommandInteraction) 
+{
+    let res = run(&command.data.options);
+    let dm = command.user.direct_message(&ctx, |message| 
+    {
+        message.content(format!("||{}||", res))
+    }).await;
+    match dm 
+    {
+        Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
+        Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
+    }
+    command.create_interaction_response(&ctx.http, |response| 
+    {
+        response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
+    }).await.unwrap();
 }

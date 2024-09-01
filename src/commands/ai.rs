@@ -7,9 +7,16 @@ extern crate serde_json;
 use dotenv::dotenv;
 use serde_json::Value;
 use serde_json::json;
-use std::env;
 use std::time::Duration;
+use std::env;
 use reqwest;
+use crate::common::constants::MAX_MSG_SZ;
+
+#[allow(deprecated)]
+use serenity::model::interactions::application_command::ApplicationCommandInteraction;
+use serenity::model::application::interaction::InteractionResponseType;
+use serenity::prelude::*;
+
 
 static TIMEOUT : u64 = 30;
 static SYSTEM_PROMPT : &str = "You are the robot Blitzcrank from League of Legends. Answer all questions in all cap letters";
@@ -33,7 +40,8 @@ pub fn format_string(output: String) -> String
 }
 
 //connect to the local LLM model running on desktop
-pub async fn run(options: &[CommandDataOption]) -> String {
+pub async fn run(options: &[CommandDataOption]) -> String 
+{
     dotenv().ok();
     let model : String = env::var("LLM_MODEL").unwrap();
     let server_ip : String = env::var("SERVER_IP").unwrap(); 
@@ -44,7 +52,8 @@ pub async fn run(options: &[CommandDataOption]) -> String {
         .resolved
         .as_ref()
         .expect("Expected prompt option");
-    if let CommandDataOptionValue::String(query) = option {
+    if let CommandDataOptionValue::String(query) = option 
+    {
             let url: String = format!("http://{}:{}/v1/chat/completions", server_ip, server_port);
             let json = &json!(
             {
@@ -74,8 +83,10 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                 return String::from("Unable to connect to LLM server, Connor's desktop probably isn't running");
             }
             let res = res.unwrap();
-            match res.status() {
-                reqwest::StatusCode::OK => {
+            match res.status() 
+            {
+                reqwest::StatusCode::OK => 
+                {
                     println!("Got statuscode OK");
                     let res_text = res.text().await.unwrap();
                     println!("{res_text}");
@@ -89,23 +100,26 @@ pub async fn run(options: &[CommandDataOption]) -> String {
                         .to_string();
                     println!("{:?}", json_result);
                     format_string(output)
-//                    format!("{}", output)
                 },
-                reqwest::StatusCode::UNAUTHORIZED => {
+                reqwest::StatusCode::UNAUTHORIZED => 
+                {
                     String::from("Error authorizing request")
                 }
-                _ => {
+                _ => 
+                {
                     println!("error: got result {} from api", res.status().to_string());
                     panic!("Unexpected error in API response");
                 }
             }
     }
-    else {
+    else 
+    {
         "Please provide a valid query.".to_string()
     }
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand 
+{
     command.name("ai").description("Submit a prompt to Google's LLM")
     .create_option(|option| {
         option
@@ -115,4 +129,35 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
             .required(true)
         });
     command
-} 
+}
+
+#[allow(deprecated)]
+pub async fn interaction(ctx: Context, command: &ApplicationCommandInteraction) 
+{
+    command.create_interaction_response(&ctx.http, |response| 
+    {
+        response
+            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+            .interaction_response_data(|message| message.content(command.data.name.as_str()))
+    }).await.unwrap();
+    let res = run(&command.data.options).await;
+    if res.chars().count() >= MAX_MSG_SZ 
+    {
+        let char_vec: Vec<char> = res.chars().collect();
+        let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
+        let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
+        command.edit_original_interaction_response(&ctx.http, |response| {
+            response.content(&first_message_str)
+        }).await.unwrap();
+        command.create_followup_message(&ctx.http, |response| {
+            response.content(&second_message_str)
+        }).await.unwrap();
+    }
+    else 
+    {
+        command.edit_original_interaction_response(&ctx.http, |response| 
+        {
+            response.content(&res)
+        }).await.unwrap();
+    }
+}
