@@ -1,26 +1,22 @@
 mod commands;
 mod common;
 mod websites;
-use crate::websites::{Website, LinkFix};
 extern crate dotenv;
 
+use std::env;
 use dotenv::dotenv;
 use tokio::fs::File;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use std::env;
+use poise::serenity_prelude::EventHandler;
+use poise::serenity_prelude as serenity;
 
-#[allow(deprecated)]
-use serenity::model::interactions::application_command::ApplicationCommandInteraction;
-use serenity::model::prelude::Activity;
-use serenity::async_trait;
-use serenity::model::application::interaction::{Interaction, InteractionResponseType};
-use serenity::model::gateway::Ready;
-use serenity::model::channel::Message;
-use serenity::model::id::GuildId;
-use serenity::model::id::ChannelId;
-use serenity::prelude::*;
+use crate::websites::{Website, LinkFix};
+
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
 
 struct Handler;
+struct Data {}
 
 async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Context)
 {
@@ -32,12 +28,11 @@ async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Cont
     msg.delete(&ctx.http).await.expect("Unable to delete message");
 }
 
-#[async_trait]
-impl EventHandler for Handler
+impl serenity::EventHandler for Handler
 {
     async fn message(&self, ctx: Context, msg: Message)
     {
-        let links : [LinkFix; 5] = 
+        let links : [LinkFix; 5] =
         [
             LinkFix {website: Website::Twitter, old_link: String::from("https://twitter.com"), new_link: String::from("https://vxtwitter.com")},
             LinkFix {website: Website::X, old_link: String::from("https://x.com"), new_link: String::from("https://c.vxtwitter.com")},
@@ -55,12 +50,12 @@ impl EventHandler for Handler
         }
     }
 
-    async fn interaction_create(&self, ctx: Context, interaction: Interaction) 
+    async fn interaction_create(&self, ctx: Context, interaction: serenity::Interaction)
     {
-        if let Interaction::ApplicationCommand(command) = &interaction 
+        if let serenity::Interaction::Command(command) = &interaction
         {
             let cmd_str = command.data.name.as_str();
-            match cmd_str 
+            match cmd_str
             {
                "search" => special_interaction(ctx, &interaction).await,
                "ai" => special_interaction(ctx, &interaction).await,
@@ -70,68 +65,16 @@ impl EventHandler for Handler
         }
     }
 
-    async fn ready(&self, ctx: Context, ready: Ready) 
+    async fn ready(&self, ctx: Context, ready: Ready)
     {
         println!("{} is connected!", ready.user.name);
-        ctx.set_activity(Activity::watching("Jerma985")).await;
+        ctx.set_activity(Some(ActivityData::custom("1459 days of trump left")));
 
+        //TODO: poise::builtins::register_globally a vec! of commands
 
-        let guild_id = GuildId(
-            env::var("GUILD_ID")
-                .expect("Expected GUILD_ID in environment")
-                .parse()
-                .expect("GUILD_ID must be an integer"),
-        );
-        let test_guild_id = GuildId
-        (
-            env::var("TEST_GUILD_ID")
-                .expect("Expected GUILD_ID in environment")
-                .parse()
-                .expect("GUILD_ID must be an integer"),
-        );
-
-        //add commands to the main server
-        let _guild_commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| 
+        match JobScheduler::new().await
         {
-            commands
-                .create_application_command(|command| commands::roll::register(command))
-                .create_application_command(|command| commands::gif::register(command))
-                .create_application_command(|command| commands::name::register(command))
-                .create_application_command(|command| commands::search::register(command))
-                .create_application_command(|command| commands::vid::register(command))
-                .create_application_command(|command| commands::jerma::register(command))
-                .create_application_command(|command| commands::help::register(command))
-                .create_application_command(|command| commands::song::register(command))
-                .create_application_command(|command| commands::ping_voice::register(command))
-                .create_application_command(|command| commands::ai::register(command))
-                .create_application_command(|command| commands::password::register(command))
-                .create_application_command(|command| commands::freaky::register(command))
-        })
-        .await
-        .expect("Could not add the guild command");
-
-        //add commands to the test server
-        let _test_guild_commands = GuildId::set_application_commands(&test_guild_id, &ctx.http, |commands| 
-        {
-            commands
-                .create_application_command(|command| commands::roll::register(command))
-                .create_application_command(|command| commands::gif::register(command))
-                .create_application_command(|command| commands::name::register(command))
-                .create_application_command(|command| commands::search::register(command))
-                .create_application_command(|command| commands::vid::register(command))
-                .create_application_command(|command| commands::jerma::register(command))
-                .create_application_command(|command| commands::help::register(command))
-                .create_application_command(|command| commands::song::register(command))
-                .create_application_command(|command| commands::ping_voice::register(command))
-                .create_application_command(|command| commands::ai::register(command))
-                .create_application_command(|command| commands::password::register(command))
-                .create_application_command(|command| commands::freaky::register(command))
-        })
-        .await
-        .expect("Could not add the test guild command");
-        match JobScheduler::new().await 
-        {
-            Ok(schedule) => 
+            Ok(schedule) =>
             {
                 let channel_id = ChannelId(
                     env::var("MAIN_CHANNEL_ID")
@@ -142,7 +85,7 @@ impl EventHandler for Handler
                 //let tokio handle executing it
                 schedule.add(
                     Job::new("0 0 14 * *  Fri *", move |_uuid, _l| // 2PM UTC => 9AM EST
-                    { 
+                    {
                         let rt = tokio::runtime::Runtime::new().unwrap();
                         let future = channel_id.send_message(ctx.http.clone(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
                         let _ = rt.block_on(future);
@@ -154,9 +97,9 @@ impl EventHandler for Handler
     }
 }
 
-async fn normal_interaction(ctx: Context, interaction: &Interaction) 
+async fn normal_interaction(ctx: Context, interaction: &Interaction)
 {
-    if let Interaction::ApplicationCommand(command) = &interaction 
+    if let Interaction::ApplicationCommand(command) = &interaction
     {
         let cmd_str = command.data.name.as_str();
         let content = match cmd_str {
@@ -171,7 +114,7 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction)
             "freaky" => commands::freaky::run(&command.data.options),
             _ => "Not implemented".to_string(),
         };
-        if let Err(e) = command.create_interaction_response(&ctx.http, |response| 
+        if let Err(e) = command.create_interaction_response(&ctx.http, |response|
         {
             response
                 .kind(InteractionResponseType::ChannelMessageWithSource)
@@ -185,16 +128,16 @@ async fn normal_interaction(ctx: Context, interaction: &Interaction)
 }
 
 //handle interactions that require doing some extra stuff other than just sending to the channel
-async fn special_interaction(ctx: Context, interaction: &Interaction) 
+async fn special_interaction(ctx: Context<'_>, interaction: &Interaction)
 {
-    if let Interaction::ApplicationCommand(command) = &interaction 
+    if let Interaction::ApplicationCommand(command) = &interaction
     {
         let cmd_str = command.data.name.as_str();
-        match cmd_str 
+        match cmd_str
         {
-           "search" => 
+           "search" =>
            {
-               if !commands::search::interaction(&ctx, command).await  
+               if !commands::search::interaction(&ctx, command).await
                {
                    no_results(ctx, command).await;
                }
@@ -207,7 +150,7 @@ async fn special_interaction(ctx: Context, interaction: &Interaction)
 }
 
 #[allow(deprecated)]
-async fn no_results(ctx: Context, command: &ApplicationCommandInteraction)
+async fn no_results(ctx: Context<'_>, command: &ApplicationCommandInteraction)
 {
     let channel_id = command.channel_id;
     let mut img_path = std::env::current_dir().unwrap();
@@ -226,18 +169,55 @@ async fn main()
     dotenv().ok();
     // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
+    let intents = serenity::GatewayIntents::privileged();
 
+    let framework = poise::Framework::builder()
+        .options(poise::FrameworkOptions
+        {
+            commands: vec!
+            [
+                commands::ai::send_prompt(),
+                commands::freaky::run(),
+                commands::gif::run(),
+                commands::help::run(),
+                commands::jerma::run(),
+                commands::name::run(),
+                commands::password::run(),
+                commands::ping_voice::run(),
+                commands::roll::run(),
+                commands::search::run(),
+                commands::song::run(),
+                commands::vid::run(),
+            ],
+            on_error: |error|
+            {
+                Box::pin(async move
+                {
+                    match error
+                    {
+                        poise::FrameworkError::ArgumentParse { error, .. } =>
+                        {
+                            println!("Error parsing arguments to Poise framework builder");
+                        }
+                        other => poise::builtins::on_error(other).await.unwrap(),
+                    }
+
+                })
+            },
+            ..Default::default()
+        })
+        .setup(|ctx, _ready, framework|
+        {
+            Box::pin(async move
+            {
+                poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+                    Ok(Data{})
+            })
+        })
+        .build();
     // Build our client.
-    let mut client = Client::builder(token, GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES)
-        .event_handler(Handler)
-        .await
-        .expect("Error creating client");
-    // Finally, start a single shard, and start listening to events.
-    //
-    // Shards will automatically attempt to reconnect, and will perform
-    // exponential backoff until it reconnects.
-    if let Err(why) = client.start().await
-    {
-        println!("Client error: {:?}", why);
-    }
+    let client = serenity::ClientBuilder::new(token, intents)
+        .framework(framework)
+        .await;
+    client.unwrap().start().await.unwrap();
 }
