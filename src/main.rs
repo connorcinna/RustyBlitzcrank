@@ -3,12 +3,14 @@ mod common;
 mod websites;
 extern crate dotenv;
 
-use std::env;
+use std::{env, future, pin};
 use dotenv::dotenv;
 use tokio::fs::File;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use poise::serenity_prelude::EventHandler;
 use poise::serenity_prelude as serenity;
+use poise::async_trait;
+use serenity::Interaction;
 
 use crate::websites::{Website, LinkFix};
 
@@ -28,9 +30,11 @@ async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Cont
     msg.delete(&ctx.http).await.expect("Unable to delete message");
 }
 
-impl serenity::EventHandler for Handler
+
+#[async_trait]
+impl EventHandler for Handler
 {
-    async fn message(&self, ctx: Context, msg: Message)
+    async fn message(&self, ctx: serenity::Context, msg: Message)
     {
         let links : [LinkFix; 5] =
         [
@@ -50,7 +54,7 @@ impl serenity::EventHandler for Handler
         }
     }
 
-    async fn interaction_create(&self, ctx: Context, interaction: serenity::Interaction)
+    async fn interaction_create(&self, ctx: serenity::Context, interaction: serenity::Interaction)
     {
         if let serenity::Interaction::Command(command) = &interaction
         {
@@ -60,17 +64,15 @@ impl serenity::EventHandler for Handler
                "search" => special_interaction(ctx, &interaction).await,
                "ai" => special_interaction(ctx, &interaction).await,
                "password" => special_interaction(ctx, &interaction).await,
-                _ => normal_interaction(ctx, &interaction).await
+                _ => {}
             };
         }
     }
 
-    async fn ready(&self, ctx: Context, ready: Ready)
+    async fn ready(&self, ctx: serenity::Context, ready: poise::serenity_prelude::Ready)
     {
         println!("{} is connected!", ready.user.name);
-        ctx.set_activity(Some(ActivityData::custom("1459 days of trump left")));
-
-        //TODO: poise::builtins::register_globally a vec! of commands
+        ctx.set_activity(Some(poise::serenity_prelude::ActivityData::custom("1459 days of trump left")));
 
         match JobScheduler::new().await
         {
@@ -97,38 +99,38 @@ impl serenity::EventHandler for Handler
     }
 }
 
-async fn normal_interaction(ctx: Context, interaction: &Interaction)
-{
-    if let Interaction::ApplicationCommand(command) = &interaction
-    {
-        let cmd_str = command.data.name.as_str();
-        let content = match cmd_str {
-            "roll" => commands::roll::run(&command.data.options),
-            "gif" => commands::gif::run(&command.data.options).await,
-            "name" => commands::name::run(&command.data.options),
-            "vid" => commands::vid::run(&command.data.options).await,
-            "jerma" => commands::jerma::run(),
-            "help" => commands::help::run(),
-            "song" => commands::song::run(&command.data.options).await,
-            "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
-            "freaky" => commands::freaky::run(&command.data.options),
-            _ => "Not implemented".to_string(),
-        };
-        if let Err(e) = command.create_interaction_response(&ctx.http, |response|
-        {
-            response
-                .kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|message| message.content(content))
-        })
-        .await
-        {
-            println!("Cannot respond to slash command: {}", e);
-        }
-    }
-}
+//async fn normal_interaction(ctx: serenity::prelude::Context, interaction: &Interaction)
+//{
+//    if let Interaction::ApplicationCommand(command) = &interaction
+//    {
+//        let cmd_str = command.data.name.as_str();
+//        let content = match cmd_str {
+//            "roll" => commands::roll::run(&command.data.options),
+//            "gif" => commands::gif::run(&command.data.options).await,
+//            "name" => commands::name::run(&command.data.options),
+//            "vid" => commands::vid::run(&command.data.options).await,
+//            "jerma" => commands::jerma::run(),
+//            "help" => commands::help::run(),
+//            "song" => commands::song::run(&command.data.options).await,
+//            "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
+//            "freaky" => commands::freaky::run(&command.data.options),
+//            _ => "Not implemented".to_string(),
+//        };
+//        if let Err(e) = command.create_interaction_response(&ctx.http, |response|
+//        {
+//            response
+//                .kind(InteractionResponseType::ChannelMessageWithSource)
+//                .interaction_response_data(|message| message.content(content))
+//        })
+//        .await
+//        {
+//            println!("Cannot respond to slash command: {}", e);
+//        }
+//    }
+//}
 
 //handle interactions that require doing some extra stuff other than just sending to the channel
-async fn special_interaction(ctx: Context<'_>, interaction: &Interaction)
+async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
 {
     if let Interaction::ApplicationCommand(command) = &interaction
     {
@@ -150,7 +152,7 @@ async fn special_interaction(ctx: Context<'_>, interaction: &Interaction)
 }
 
 #[allow(deprecated)]
-async fn no_results(ctx: Context<'_>, command: &ApplicationCommandInteraction)
+async fn no_results(ctx: serenity::Context, command: &ApplicationCommandInteraction)
 {
     let channel_id = command.channel_id;
     let mut img_path = std::env::current_dir().unwrap();
