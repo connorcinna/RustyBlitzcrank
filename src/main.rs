@@ -69,65 +69,42 @@ impl EventHandler for Handler
         }
     }
 
-    async fn ready(&self, ctx: serenity::Context, ready: poise::serenity_prelude::Ready)
+    async fn ready(&self, ctx: serenity::Context, ready: serenity::Ready)
     {
         println!("{} is connected!", ready.user.name);
         ctx.set_activity(Some(poise::serenity_prelude::ActivityData::custom("1459 days of trump left")));
-
-        match JobScheduler::new().await
-        {
-            Ok(schedule) =>
-            {
-                let channel_id = ChannelId(
+        let channel_id = serenity::ChannelId::new(
                     env::var("MAIN_CHANNEL_ID")
                     .expect("Expected MAIN_CHANNEL_ID in environment")
                     .parse()
                     .expect("MAIN_CHANNEL_ID must be an integer"));
-                //async closures don't really work, have to make the inner closure create a future and then
-                //let tokio handle executing it
-                schedule.add(
-                    Job::new("0 0 14 * *  Fri *", move |_uuid, _l| // 2PM UTC => 9AM EST
-                    {
-                        let rt = tokio::runtime::Runtime::new().unwrap();
-                        let future = channel_id.send_message(ctx.http.clone(), |message| message.content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q"));
-                        let _ = rt.block_on(future);
-                    }).unwrap(),
-                ).await.unwrap();
-            },
-            Err(e) => panic!("Unable to initialize JobScheduler: {}", e),
-        };
+        begin_scheduled_jobs(channel_id, &ctx);
     }
 }
 
-//async fn normal_interaction(ctx: serenity::prelude::Context, interaction: &Interaction)
-//{
-//    if let Interaction::ApplicationCommand(command) = &interaction
-//    {
-//        let cmd_str = command.data.name.as_str();
-//        let content = match cmd_str {
-//            "roll" => commands::roll::run(&command.data.options),
-//            "gif" => commands::gif::run(&command.data.options).await,
-//            "name" => commands::name::run(&command.data.options),
-//            "vid" => commands::vid::run(&command.data.options).await,
-//            "jerma" => commands::jerma::run(),
-//            "help" => commands::help::run(),
-//            "song" => commands::song::run(&command.data.options).await,
-//            "ping_voice" => commands::ping_voice::run(ctx.clone(), &command.data.options).await,
-//            "freaky" => commands::freaky::run(&command.data.options),
-//            _ => "Not implemented".to_string(),
-//        };
-//        if let Err(e) = command.create_interaction_response(&ctx.http, |response|
-//        {
-//            response
-//                .kind(InteractionResponseType::ChannelMessageWithSource)
-//                .interaction_response_data(|message| message.content(content))
-//        })
-//        .await
-//        {
-//            println!("Cannot respond to slash command: {}", e);
-//        }
-//    }
-//}
+async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: &serenity::Context) -> Result<(), Error>
+{
+    match JobScheduler::new().await
+    {
+        Ok(schedule) =>
+        {
+            //async closures don't really work, have to make the inner closure create a future and then
+            //let tokio handle executing it
+            schedule.add(
+                Job::new("0 0 14 * *  Fri *", move |_uuid, _l| // 2PM UTC => 9AM EST
+                {
+                    let http = &ctx.http.clone();
+                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let builder = serenity::CreateMessage::new().content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q");
+                    let future = channel_id.send_message(http, builder);
+                    let _ = rt.block_on(future);
+                }).unwrap(),
+            ).await.unwrap();
+            return Ok(());
+        },
+        Err(e) =>  { return Err(Error::from(e.to_string())); }
+    };
+}
 
 //handle interactions that require doing some extra stuff other than just sending to the channel
 async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
