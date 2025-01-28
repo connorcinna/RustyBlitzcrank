@@ -194,6 +194,7 @@ async fn no_results(ctx: serenity::Context, command: &ApplicationCommandInteract
 }
 
 #[tokio::main]
+//TODO: add test region so I can test function output without actually connecting to discord
 async fn main()
 {
     dotenv().ok();

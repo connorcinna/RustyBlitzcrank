@@ -1,10 +1,8 @@
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::application::command::CommandOptionType;
-use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
+use crate::{Context, Error};
 
 pub fn freaktionary(c: char) -> char
 {
-    match c 
+    match c
     {
         'a'=> '𝓪',
         'b'=> '𝓫',
@@ -59,40 +57,33 @@ pub fn freaktionary(c: char) -> char
         'Y'=> '𝓨',
         'Z'=> '𝓩',
         ' ' => ' ',
-        _ => c 
-    }
-}
-pub fn run(options: &[CommandDataOption]) -> String
-{
-    let option = options
-        .get(0)
-        .expect("Expected string to freakify")
-        .resolved
-        .as_ref()
-        .expect("Expected string to freakify");
-    if let CommandDataOptionValue::String(text) = option 
-    {
-        let mut output = String::new();
-        for c in text.chars()
-        {
-            output.push(freaktionary(c));
-        }
-        format!("{output}") 
-    }
-    else
-    {
-        return String::from("𝔂𝓸𝓾 𝓱𝓪𝓿𝓮 𝓽𝓸 𝓰𝓲𝓿𝓮 𝓶𝓮 𝓼𝓸𝓶𝓮 𝓽𝓮𝔁𝓽 𝓿𝓻𝓸 ❤️");
+        _ => c
     }
 }
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("freaky").description("get 𝓯𝓻𝓮𝓪𝓴𝔂 𝓿𝓻𝓸 ❤️")
-    .create_option(|option| {
-        option
-            .name("text")
-            .description("the text to freakify")
-            .kind(CommandOptionType::String)
-            .required(true)
-        });
-    return command;
+#[poise::command(slash_command)]
+pub async fn run(
+    ctx: Context<'_>,
+    #[description = "get 𝓯𝓻𝓮𝓪𝓴𝔂 𝓿𝓻𝓸 ❤️"] text: String
+    ) -> Result<(), Error>
+{
+    let mut output = String::new();
+    for c in text.chars()
+    {
+        output.push(freaktionary(c));
+    }
+    ctx.say(format!("{output}"));
+    Ok(())
 }
+
+//pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+//    command.name("freaky").description("get 𝓯𝓻𝓮𝓪𝓴𝔂 𝓿𝓻𝓸 ❤️")
+//    .create_option(|option| {
+//        option
+//            .name("text")
+//            .description("the text to freakify")
+//            .kind(CommandOptionType::String)
+//            .required(true)
+//        });
+//    return command;
+//}
