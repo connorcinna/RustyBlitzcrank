@@ -1,9 +1,8 @@
-use serenity::builder::CreateApplicationCommand;
-pub fn run() -> String {
-    String::from("https://github.com/connorcinna/RustyBlitzcrank#readme")
-}
+use crate::{Context, Error};
 
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("help").description("Information about Blitzcrank and it's commands");
-    command
-} 
+#[poise::command(slash_command)]
+pub async fn run(ctx: Context<'_>) -> Result<(), Error> 
+{
+    ctx.say("https://github.com/connorcinna/RustyBlitzcrank#readme");
+    Ok(())
+}

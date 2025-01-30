@@ -160,7 +160,7 @@ fn breakdown_time(td: TimeDelta) -> TimeData
 //handle interactions that require doing some extra stuff other than just sending to the channel
 async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
 {
-    if let Interaction::ApplicationCommand(command) = &interaction
+    if let Interaction::Command(command) = &interaction
     {
         let cmd_str = command.data.name.as_str();
         match cmd_str
@@ -172,7 +172,7 @@ async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
                    no_results(ctx, command).await;
                }
            },
-           "ai" => commands::ai::interaction(ctx, command).await,
+//           "ai" => commands::ai::interaction(ctx, command).await,
            "password" => commands::password::interaction(ctx, command).await,
            &_ => println!("Unimplemented"),
         }

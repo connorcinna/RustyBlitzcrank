@@ -44,17 +44,3 @@ pub async fn run(
         }
     }
 }
-
-
-
-//pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-//    command.name("gif").description("Query Tenor for a gif")
-//    .create_option(|option| {
-//        option
-//            .name("word")
-//            .description("The query to be passed to Tenor's API")
-//            .kind(CommandOptionType::String)
-//            .required(true)
-//        });
-//    command
-//}

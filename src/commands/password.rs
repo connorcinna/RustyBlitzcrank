@@ -1,29 +1,22 @@
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
-use serenity::model::application::command::CommandOptionType;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use serde_json;
 
 #[allow(deprecated)]
-use serenity::model::interactions::application_command::ApplicationCommandInteraction;
-use serenity::prelude::*;
-
+use crate::{Context, Error, Interaction};
+use poise::serenity_prelude::{CommandInteraction, CreateMessage};
+use crate::common::helpers::coinflip;
 
 //TODO: refactor this and name.rs to some common file
-pub fn run(options: &[CommandDataOption]) -> String
+#[poise::command(slash_command)]
+pub async fn run(
+    ctx: Context<'_>,
+    #[description = "Number of characters in the password"] size: i64
+) -> Result<(), Error>
 {
-    let mut _size: usize = 0;
     let ret: String;
     let json: serde_json::Value;
     let s: String;
-    let option = options
-        .get(0)
-        .expect("Expected number of characters")
-        .resolved
-        .as_ref()
-        .expect("Expected number of characters");
-    if let CommandDataOptionValue::Integer(size) = option { _size = *size as usize; }
     let json_file = std::fs::read_to_string("./resources/words.json");
     match json_file
     {
@@ -44,7 +37,7 @@ pub fn run(options: &[CommandDataOption]) -> String
         verb = randomize_case(&verb);
 
         ret = format!("{}{}er", noun, verb);
-        s = finalize(ret.clone(), _size, rng.clone());
+        s = finalize(ret.clone(), size, rng.clone());
     }
     //format: adjective + noun + random numbers
     else
@@ -55,9 +48,15 @@ pub fn run(options: &[CommandDataOption]) -> String
         adjective = randomize_case(&adjective);
 
         ret = format!("{}{}", adjective, noun);
-        s = finalize(ret.clone(), _size, rng.clone());
+        s = finalize(ret.clone(), size, rng.clone());
     }
-    s
+//    ctx.say(s);
+
+    let dm = ctx.author().direct_message(&ctx, |message: CreateMessage|
+    {
+        message.content(format!("||{}||", s))
+    }).await;
+    Ok(())
 }
 
 pub fn random_word(json: serde_json::Value, word_type: String) -> String
@@ -97,7 +96,7 @@ pub fn randomize_case(word: &String)  -> String
     ret
 }
 
-pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
+pub fn finalize(mut word: String, _size: i64, mut rng: ThreadRng) -> String
 {
     let special_chars = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "?", "[", "]"];
     while word.len() < _size as usize
@@ -107,7 +106,7 @@ pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
         {
             word.push_str(&index.to_string());
         }
-        else 
+        else
         {
             word.push_str(special_chars[index]);
         }
@@ -120,40 +119,20 @@ pub fn finalize(mut word: String, _size: usize, mut rng: ThreadRng) -> String
     s
 }
 
-pub fn coinflip() -> bool
+pub async fn interaction(ctx: Context<'_>, command: CommandInteraction)
 {
-    let mut rng = rand::thread_rng();
-    rng.gen::<f32>() >= 0.50
-}
-
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand 
-{
-    command.name("password").description("Generate a random password between 16-32 characters")
-        .create_option(|option|
-                       {
-                            option
-                                .name("characters")
-                                .description("The number of characters you want your password to be")
-                                .kind(CommandOptionType::Integer)
-                                .required(true)
-                       });
-    command
-}
-
-#[allow(deprecated)]
-pub async fn interaction(ctx: Context, command: &ApplicationCommandInteraction) 
-{
-    let res = run(&command.data.options);
-    let dm = command.user.direct_message(&ctx, |message| 
-    {
-        message.content(format!("||{}||", res))
-    }).await;
-    match dm 
+    let option = command.data.options[0].value.as_i64().unwrap();
+    let res = run(option);
+//    let dm = command.user.direct_message(&ctx, |message|
+//    {
+//        message.content(format!("||{}||", res))
+//    }).await;
+    match dm
     {
         Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
         Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
     }
-    command.create_interaction_response(&ctx.http, |response| 
+    command.create_interaction_response(&ctx.http, |response|
     {
         response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
     }).await.unwrap();

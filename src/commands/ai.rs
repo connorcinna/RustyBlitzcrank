@@ -107,33 +107,32 @@ pub async fn send_prompt(
     }
 }
 
-#[allow(deprecated)]
-pub async fn interaction(ctx: Context<'_>, command: &ApplicationCommandInteraction)
-{
-    command.create_interaction_response(&ctx.http, |response|
-    {
-        response
-            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
-            .interaction_response_data(|message| message.content(command.data.name.as_str()))
-    }).await.unwrap();
-    let res = run(&command.data.options).await;
-    if res.chars().count() >= MAX_MSG_SZ
-    {
-        let char_vec: Vec<char> = res.chars().collect();
-        let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
-        let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
-        command.edit_original_interaction_response(&ctx.http, |response| {
-            response.content(&first_message_str)
-        }).await.unwrap();
-        command.create_followup_message(&ctx.http, |response| {
-            response.content(&second_message_str)
-        }).await.unwrap();
-    }
-    else
-    {
-        command.edit_original_interaction_response(&ctx.http, |response|
-        {
-            response.content(&res)
-        }).await.unwrap();
-    }
-}
+//pub async fn interaction(ctx: Context<'_>, command: &ApplicationCommandInteraction)
+//{
+//    command.create_interaction_response(&ctx.http, |response|
+//    {
+//        response
+//            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+//            .interaction_response_data(|message| message.content(command.data.name.as_str()))
+//    }).await.unwrap();
+//    let res = run(&command.data.options).await;
+//    if res.chars().count() >= MAX_MSG_SZ
+//    {
+//        let char_vec: Vec<char> = res.chars().collect();
+//        let first_message_str: String = char_vec[..MAX_MSG_SZ].into_iter().collect();
+//        let second_message_str: String = char_vec[MAX_MSG_SZ..].into_iter().collect();
+//        command.edit_original_interaction_response(&ctx.http, |response| {
+//            response.content(&first_message_str)
+//        }).await.unwrap();
+//        command.create_followup_message(&ctx.http, |response| {
+//            response.content(&second_message_str)
+//        }).await.unwrap();
+//    }
+//    else
+//    {
+//        command.edit_original_interaction_response(&ctx.http, |response|
+//        {
+//            response.content(&res)
+//        }).await.unwrap();
+//    }
+//}
