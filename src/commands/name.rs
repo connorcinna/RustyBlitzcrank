@@ -35,7 +35,7 @@ pub async fn run(
 pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> String
 {
     let verb: String = random_word(json.clone(), String::from("verbs").clone());
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut ret : String;
     let last_chars =
     {
@@ -57,7 +57,7 @@ pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> Stri
     //append random numbers to the end
     while ret.len() < _SIZE as usize
     {
-        ret.push_str(&rng.gen_range(0..10).to_string());
+        ret.push_str(&rng.random_range(0..10).to_string());
     }
     return String::from(ret);
 }
@@ -66,11 +66,11 @@ pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> Stri
 pub fn generate_format_two(json: serde_json::value::Value, noun: String) -> String
 {
     let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut ret = format!("{}{}", adjective, noun);
     while ret.len() < _SIZE as usize
     {
-        ret.push_str(&rng.gen_range(0..10).to_string());
+        ret.push_str(&rng.random_range(0..10).to_string());
     }
     return String::from(ret);
 }
@@ -108,13 +108,13 @@ pub fn random_word(json: serde_json::Value, word_type: String) -> String
 {
     let word: String;
     let word_obj = json.get(&word_type);
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     match word_obj
     {
         Some(v) =>
         {
             let word_size = v.as_array().expect("unable to parse words from json").len();
-            word = v.get(rng.gen_range(0..word_size)).expect("unable to index through words in json").to_string();
+            word = v.get(rng.random_range(0..word_size)).expect("unable to index through words in json").to_string();
         }
         None =>
         {

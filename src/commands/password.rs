@@ -1,20 +1,20 @@
-use rand::Rng;
-use rand::rngs::ThreadRng;
+use rand::prelude::*;
 use serde_json;
 
 #[allow(deprecated)]
 use crate::{Context, Error, Interaction};
-use poise::serenity_prelude::{CommandInteraction, CreateMessage};
+use poise::serenity_prelude::{CommandInteraction, CreateMessage, CreateInteractionResponse, CreateInteractionResponseMessage};
 use crate::common::helpers::coinflip;
 
 //TODO: refactor this and name.rs to some common file
+//TODO: really need to read the json into string and share it by reference without cloning, would
+//be way more efficient
 #[poise::command(slash_command)]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "Number of characters in the password"] size: i64
 ) -> Result<(), Error>
 {
-    let ret: String;
     let json: serde_json::Value;
     let s: String;
     let json_file = std::fs::read_to_string("./resources/words.json");
@@ -24,52 +24,38 @@ pub async fn run(
             .expect("unable to convert file to json"),
         Err(e) => panic!("unable to find json file: {}", e),
     }
-
-    let mut noun: String = random_word(json.clone(), String::from("nouns").clone());
-    let rng = rand::thread_rng();
-     //format: noun + verb + er + random numbers
+    let noun: String = randomize_case(&random_word(json.clone(), String::from("nouns").clone()));
     if coinflip()
     {
-        let mut verb: String = random_word(json.clone(), String::from("verbs").clone());
-
-        //randomly capitalize some letters otherwise everything is lowercase
-        noun = randomize_case(&noun);
-        verb = randomize_case(&verb);
-
-        ret = format!("{}{}er", noun, verb);
-        s = finalize(ret.clone(), size, rng.clone());
+        s = generate_format_one(json, noun, size);
     }
-    //format: adjective + noun + random numbers
     else
     {
-        let mut adjective: String = random_word(json.clone(), String::from("adjectives").clone());
-
-        noun = randomize_case(&noun);
-        adjective = randomize_case(&adjective);
-
-        ret = format!("{}{}", adjective, noun);
-        s = finalize(ret.clone(), size, rng.clone());
+        s = generate_format_two(json, noun, size);
     }
-//    ctx.say(s);
 
-    let dm = ctx.author().direct_message(&ctx, |message: CreateMessage|
+    let builder = CreateMessage::new().content(format!("||{}||", s));
+    let dm = ctx.author().direct_message(&ctx, builder).await;
+    match dm
     {
-        message.content(format!("||{}||", s))
-    }).await;
+        Ok(_) => println!("Successfully sent dm to {} with new password", ctx.author().name),
+        Err(e) => println!("Error sending dm to {} : {}", ctx.author().name, e)
+    }
+
     Ok(())
 }
 
 pub fn random_word(json: serde_json::Value, word_type: String) -> String
 {
     let word: String;
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let word_obj = json.get(&word_type);
     match word_obj
     {
         Some(v) =>
         {
             let word_size = v.as_array().expect("unable to parse words from json").len();
-            word = v.get(rng.gen_range(0..word_size)).expect("unable to index through words in json").to_string();
+            word = v.get(rng.random_range(0..word_size)).expect("unable to index through words in json").to_string();
         }
         None =>
         {
@@ -119,21 +105,52 @@ pub fn finalize(mut word: String, _size: i64, mut rng: ThreadRng) -> String
     s
 }
 
+pub fn generate_format_one(json: serde_json::value::Value, noun: String, size: i64) -> String
+{
+    let verb: String = randomize_case(&random_word(json.clone(), String::from("verbs").clone()));
+    let mut rng = rand::rng();
+    let mut ret : String;
+    let last_chars =
+    {
+        let split_pos = verb.char_indices().nth_back(2).unwrap().0;
+        &verb[..split_pos]
+    };
+    if last_chars == "er"
+    {
+        ret = format!("{}{}", noun, verb);
+    }
+    else if verb.chars().last().unwrap() == 'e'
+    {
+        ret = format!("{}{}r", noun, verb);
+    }
+    else
+    {
+        ret = format!("{}{}er", noun, verb);
+    }
+    //append random numbers to the end
+    while ret.len() < size as usize
+    {
+        ret.push_str(&rng.random_range(0..10).to_string());
+    }
+    return String::from(ret);
+
+}
+
+pub fn generate_format_two(json: serde_json::value::Value, noun: String, size: i64) -> String
+{
+    let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
+    let mut rng = rand::rng();
+    let mut ret = format!("{}{}", adjective, noun);
+    while ret.len() < size as usize
+    {
+        ret.push_str(&rng.random_range(0..10).to_string());
+    }
+    return String::from(ret);
+}
+
 pub async fn interaction(ctx: Context<'_>, command: CommandInteraction)
 {
-    let option = command.data.options[0].value.as_i64().unwrap();
-    let res = run(option);
-//    let dm = command.user.direct_message(&ctx, |message|
-//    {
-//        message.content(format!("||{}||", res))
-//    }).await;
-    match dm
-    {
-        Ok(_) => println!("Successfully sent dm to {} with new password", command.user.name),
-        Err(e) => println!("Error sending DM to {} : {}", command.user.name, e)
-    }
-    command.create_interaction_response(&ctx.http, |response|
-    {
-        response.interaction_response_data(|message| message.content("Sent, check your direct messages"))
-    }).await.unwrap();
+    let data = CreateInteractionResponseMessage::new().content("Sent, check your direct messages");
+    let builder = CreateInteractionResponse::Message(data);
+    command.create_response(&ctx.http(), builder).await.unwrap();
 }
