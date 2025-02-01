@@ -2,9 +2,11 @@ extern crate dotenv;
 extern crate serde_json;
 use poise::serenity_prelude as serenity;
 use poise::serenity_prelude::{CommandInteraction, CreateInteractionResponse, CreateInteractionResponseMessage};
+use serenity::builder::{CreateAttachment, CreateMessage};
 use dotenv::dotenv;
 use serde_json::Value;
 use reqwest;
+use tokio::fs::File;
 
 use crate::{Error, Context};
 
@@ -16,6 +18,7 @@ pub async fn run(
     #[description = "The query to pass to Google's search API"] query: String
 ) -> Result<(), Error>
 {
+    ctx.defer();
     dotenv().ok();
     let client = reqwest::Client::new();
     //TODO: reformat this with reqwest params instead of stuffing it all in this url string
@@ -34,16 +37,19 @@ pub async fn run(
     match json_result.get("queries")
         .and_then(|value| value.get("nextPage"))
         .and_then(|value| value.get(0))
-        .and_then(|value| value.get("totalResults")) {
-        Some(result_num) => {
-            if result_num == "0" {
+        .and_then(|value| value.get("totalResults"))
+        {
+            Some(result_num) =>
+            {
+                if result_num == "0"
+                {
+                    no_results(ctx);
+                    return Err(Box::new(std::fmt::Error));
+                }
+            }
+            None => {
                 return Err(Box::new(std::fmt::Error));
             }
-            //else, normal case
-        }
-        None => {
-            return Err(Box::new(std::fmt::Error));
-        }
     }
     let result = json_result.get("items")
         .and_then(|value| value.get(0))
@@ -51,25 +57,25 @@ pub async fn run(
         .unwrap()
         .to_string();
 
-    //want to Defer the current interaction until the method finishes and then edit_response
-    //how do I know when a poise slash command has finished executing from the context of
-    //serenity's interaction_create?
+    //right now assuming that ctx.say() will foil the ctx.defer() from earlier
     ctx.say(format!("\n{}", &result[1..result.len()-1]));
     Ok(())
 }
 
-//handle deferring the message, wait for the response from API call, and send it to the channel
-//or, if the API didn't find an image link, send the funny blitzcrank picture
-pub async fn interaction(ctx: serenity::Context, command: CommandInteraction)
+async fn no_results(ctx: Context<'_>) -> Result<(), Error>
 {
-    let data = CreateInteractionResponseMessage::new().content(command.data.name.as_str());
-    let builder = CreateInteractionResponse::Defer(data);
-    command.create_response(&ctx.http, builder).await.unwrap();
-    if let Ok(res) = run(&ctx, &command.data.options).await
-    {
-        command.edit_response(&ctx.http, |response| response.content(res)).await.unwrap();
-    }
-//    return false;
-//    send blitzcrank picture
-
+    let channel_id = ctx.channel_id();
+    let mut img_path = std::env::current_dir().unwrap();
+    img_path.push("resources/lol.png");
+    let img_file = File::open(img_path).await.unwrap();
+    let files =
+    [
+        CreateAttachment::file(&img_file, "lol.png").await?,
+    ];
+    //empty message closure to satisfy function
+    let builder = CreateMessage::new().content("");
+    let _ = channel_id.send_files(&ctx.http(), files, builder).await;
+    Ok(())
+//    //get rid of the "bot is thinking..." message
+//    command.delete_original_interaction_response(&ctx.http).await.unwrap();
 }

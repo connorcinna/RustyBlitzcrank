@@ -1,33 +1,14 @@
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::application::command::CommandOptionType;
-use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
 use rand::Rng;
+use crate::{Context, Error};
 
-pub fn run(options: &[CommandDataOption]) -> String {
-    let option = options
-        .get(0)
-        .expect("Expected ceiling option")
-        .resolved
-        .as_ref()
-        .expect("Expected ceiling option");
-    if let CommandDataOptionValue::Integer(ceiling) = option {
-        let mut rng = rand::thread_rng();
-        let roll_result: i64 = rng.gen_range(0..*ceiling);
-        format!("{}", roll_result) 
-    }
-    else {
-        "Please provide a valid ceiling value.".to_string()
-    }
+#[poise::command(slash_command)]
+pub async fn run(
+    ctx: Context<'_>,
+    #[description = "Ceiling for the random number generation"] ceiling: i64,
+    ) -> Result<(), Error>
+{
+    let mut rng = rand::rng();
+    let roll_result: i64 = rng.random_range(0..ceiling);
+    ctx.say(format!("{}", roll_result));
+    Ok(())
 }
-
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("roll").description("Roll a dice for a random value between 1 and the value given in the argument, e.g. /roll 50")
-    .create_option(|option| {
-        option
-            .name("ceiling")
-            .description("The maximum value of the dice roll.")
-            .kind(CommandOptionType::Integer)
-            .required(true)
-        });
-    return command;
-} 

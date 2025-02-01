@@ -5,16 +5,14 @@ extern crate dotenv;
 
 use std::{env, future, pin};
 use dotenv::dotenv;
-use tokio::fs::File;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use chrono::{DateTime, Utc, TimeDelta};
 use poise::serenity_prelude::EventHandler;
 use poise::serenity_prelude as serenity;
 use serenity::Message;
 use poise::async_trait;
-use serenity::Interaction;
 
-use crate::websites::{Website, LinkFix};
+use crate::websites::{Website, LinkFix, fix_links};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -75,9 +73,9 @@ impl EventHandler for Handler
             let cmd_str = command.data.name.as_str();
             match cmd_str
             {
-               "search" => special_interaction(ctx, &interaction).await,
-               "ai" => special_interaction(ctx, &interaction).await,
-               "password" => special_interaction(ctx, &interaction).await,
+                "search" => commands::search::interaction(ctx, command.clone()).await,
+                "ai" => commands::search::interaction(ctx, command.clone()).await,
+                "password" => commands::search::interaction(ctx, command.clone()).await,
                 _ => {}
             };
         }
@@ -122,6 +120,7 @@ async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Co
     return Ok(());
 }
 
+//TODO: put this in Utility file
 fn breakdown_time(td: TimeDelta) -> TimeData
 {
     let mut seconds = td.num_seconds();
@@ -149,41 +148,29 @@ fn breakdown_time(td: TimeDelta) -> TimeData
     }
 }
 
-//handle interactions that require doing some extra stuff other than just sending to the channel
-async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
-{
-    if let Interaction::Command(command) = &interaction
-    {
-        let cmd_str = command.data.name.as_str();
-        match cmd_str
-        {
-           "search" =>
-           {
-               if !commands::search::interaction(&ctx, command).await
-               {
-                   no_results(ctx, command).await;
-               }
-           },
-//           "ai" => commands::ai::interaction(ctx, command).await,
-           "password" => commands::password::interaction(ctx, command.clone()).await,
-           &_ => println!("Unimplemented"),
-        }
-    }
-}
+////handle interactions that require doing some extra stuff other than just sending to the channel
+//async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
+//{
+//    if let Interaction::Command(command) = &interaction
+//    {
+//        let cmd_str = command.data.name.as_str();
+//        match cmd_str
+//        {
+//           "search" =>
+//           {
+//               if !commands::search::interaction(&ctx, command).await
+//               {
+//                   no_results(ctx, command).await;
+//               }
+//           },
+////           "ai" => commands::ai::interaction(ctx, command).await,
+//           "password" => commands::password::interaction(ctx, command.clone()).await,
+//           &_ => println!("Unimplemented"),
+//        }
+//    }
+//}
 
-#[allow(deprecated)]
-async fn no_results(ctx: serenity::Context, command: &ApplicationCommandInteraction)
-{
-    let channel_id = command.channel_id;
-    let mut img_path = std::env::current_dir().unwrap();
-    img_path.push("resources/lol.png");
-    let img_file = File::open(img_path).await.unwrap();
-    let files = vec![(&img_file, "resources/lol.png")];
-    //empty message closure to satisfy function
-    let _ = channel_id.send_files(&ctx.http, files, |m| m).await;
-    //get rid of the "bot is thinking..." message
-    command.delete_original_interaction_response(&ctx.http).await.unwrap();
-}
+
 
 #[tokio::main]
 //TODO: add test region so I can test function output without actually connecting to discord
