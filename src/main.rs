@@ -10,6 +10,7 @@ use chrono::{DateTime, Utc, TimeDelta};
 use poise::serenity_prelude::EventHandler;
 use poise::serenity_prelude as serenity;
 use serenity::Message;
+use serenity::model::gateway::GatewayIntents;
 use poise::async_trait;
 
 use crate::websites::{fix_links, LINKS};
@@ -171,7 +172,7 @@ async fn main()
     dotenv().ok();
     // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
-    let intents = serenity::GatewayIntents::privileged();
+    let intents = serenity::GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions
