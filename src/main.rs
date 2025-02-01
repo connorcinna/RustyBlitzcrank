@@ -10,6 +10,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 use chrono::{DateTime, Utc, TimeDelta};
 use poise::serenity_prelude::EventHandler;
 use poise::serenity_prelude as serenity;
+use serenity::Message;
 use poise::async_trait;
 use serenity::Interaction;
 
@@ -41,16 +42,14 @@ struct TimeData
     seconds: i64,
 }
 
-
-async fn fix_links(old_link: String, new_link: String, msg: &Message, ctx: &Context)
-{
-    let mut final_link = msg.content.to_owned();
-    let prepend_str = format!("Posted by {}\n", msg.author.name);
-    final_link = final_link.replace(&old_link, &new_link);
-    final_link.insert_str(0, &prepend_str);
-    msg.channel_id.say(&ctx.http, final_link).await.unwrap();
-    msg.delete(&ctx.http).await.expect("Unable to delete message");
-}
+const LINKS : [LinkFix; 5] =
+[
+    LinkFix {website: Website::Twitter, old_link: "https://twitter.com", new_link: "https://vxtwitter.com"},
+    LinkFix {website: Website::X, old_link: "https://x.com", new_link: "https://c.vxtwitter.com"},
+    LinkFix {website: Website::Tiktok, old_link: "https://www.tiktok.com", new_link: "https://vxtiktok.com"},
+    LinkFix {website: Website::Instagram, old_link: "https://www.instagram.com", new_link: "https://ddinstagram.com"},
+    LinkFix {website: Website::Reddit, old_link: "https://www.reddit.com", new_link: "https://vxreddit.com"},
+];
 
 
 #[async_trait]
@@ -58,15 +57,8 @@ impl EventHandler for Handler
 {
     async fn message(&self, ctx: serenity::Context, msg: Message)
     {
-        let links : [LinkFix; 5] =
-        [
-            LinkFix {website: Website::Twitter, old_link: String::from("https://twitter.com"), new_link: String::from("https://vxtwitter.com")},
-            LinkFix {website: Website::X, old_link: String::from("https://x.com"), new_link: String::from("https://c.vxtwitter.com")},
-            LinkFix {website: Website::Tiktok, old_link: String::from("https://www.tiktok.com"), new_link: String::from("https://vxtiktok.com")},
-            LinkFix {website: Website::Instagram, old_link: String::from("https://www.instagram.com"), new_link: String::from("https://ddinstagram.com")},
-            LinkFix {website: Website::Reddit, old_link: String::from("https://www.reddit.com"), new_link: String::from("https://vxreddit.com")},
-        ];
-        for link in links
+
+        for link in LINKS
         {
             if msg.content.find(&link.old_link).is_some()
             {
@@ -158,7 +150,7 @@ fn breakdown_time(td: TimeDelta) -> TimeData
 }
 
 //handle interactions that require doing some extra stuff other than just sending to the channel
-async fn special_interaction(ctx: Context<'_>, interaction: &Interaction)
+async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
 {
     if let Interaction::Command(command) = &interaction
     {

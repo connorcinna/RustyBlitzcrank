@@ -1,9 +1,9 @@
 use rand::prelude::*;
 use serde_json;
 
-#[allow(deprecated)]
-use crate::{Context, Error, Interaction};
+use crate::{Context, Error};
 use poise::serenity_prelude::{CommandInteraction, CreateMessage, CreateInteractionResponse, CreateInteractionResponseMessage};
+use poise::serenity_prelude as serenity;
 use crate::common::helpers::coinflip;
 
 //TODO: refactor this and name.rs to some common file
@@ -148,9 +148,9 @@ pub fn generate_format_two(json: serde_json::value::Value, noun: String, size: i
     return String::from(ret);
 }
 
-pub async fn interaction(ctx: Context<'_>, command: CommandInteraction)
+pub async fn interaction(ctx: serenity::Context, command: CommandInteraction)
 {
     let data = CreateInteractionResponseMessage::new().content("Sent, check your direct messages");
     let builder = CreateInteractionResponse::Message(data);
-    command.create_response(&ctx.http(), builder).await.unwrap();
+    command.create_response(&ctx.http, builder).await.unwrap();
 }
