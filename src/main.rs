@@ -3,7 +3,7 @@ mod common;
 mod websites;
 extern crate dotenv;
 
-use std::{env, future, pin};
+use std::env;
 use dotenv::dotenv;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use chrono::{DateTime, Utc, TimeDelta};
@@ -12,7 +12,7 @@ use poise::serenity_prelude as serenity;
 use serenity::Message;
 use poise::async_trait;
 
-use crate::websites::{Website, LinkFix, fix_links, LINKS};
+use crate::websites::{fix_links, LINKS};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -197,7 +197,7 @@ async fn main()
                 {
                     match error
                     {
-                        poise::FrameworkError::ArgumentParse { error, .. } =>
+                        poise::FrameworkError::ArgumentParse {  .. } =>
                         {
                             println!("Error parsing arguments to Poise framework builder");
                         }

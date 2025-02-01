@@ -1,7 +1,6 @@
 extern crate dotenv;
 extern crate serde_json;
 use poise::serenity_prelude as serenity;
-use poise::serenity_prelude::{CommandInteraction, CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::builder::{CreateAttachment, CreateMessage};
 use dotenv::dotenv;
 use serde_json::Value;

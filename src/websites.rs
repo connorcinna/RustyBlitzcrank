@@ -1,4 +1,3 @@
-use crate::Context;
 use poise::serenity_prelude as serenity;
 use serenity::Message;
 
