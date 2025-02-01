@@ -33,7 +33,7 @@ pub async fn run(
     {
         s = generate_format_two(json, noun, size);
     }
-
+    let s = finalize(s, size);
     let builder = CreateMessage::new().content(format!("||{}||", s));
     let dm = ctx.author().direct_message(&ctx, builder).await;
     match dm
@@ -82,12 +82,16 @@ pub fn randomize_case(word: &String)  -> String
     ret
 }
 
-pub fn finalize(mut word: String, _size: i64, mut rng: ThreadRng) -> String
+pub fn finalize(mut word: String, _size: i64) -> String
 {
     let special_chars = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "?", "[", "]"];
     while word.len() < _size as usize
     {
-        let index: usize = rng.gen_range(0..special_chars.len());
+        let index: usize =
+        {
+            let mut rng = rand::rng();
+            rng.random_range(0..special_chars.len())
+        };
         if coinflip()
         {
             word.push_str(&index.to_string());

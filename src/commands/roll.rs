@@ -7,8 +7,13 @@ pub async fn run(
     #[description = "Ceiling for the random number generation"] ceiling: i64,
     ) -> Result<(), Error>
 {
-    let mut rng = rand::rng();
-    let roll_result: i64 = rng.random_range(0..ceiling);
-    ctx.say(format!("{}", roll_result));
+    //rand::rng does not implement either Send or Sync,
+    //so in this case, random needs to fall out of scope before we call await
+    let roll =
+    {
+        let mut random = rand::rng();
+        random.random_range(0..ceiling)
+    };
+    let _ = ctx.say(format!("{}", roll)).await;
     Ok(())
 }

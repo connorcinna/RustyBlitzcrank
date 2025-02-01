@@ -24,7 +24,7 @@ pub async fn run(
     {
         if let Some(track) = page.items[0].external_urls.get("spotify")
         {
-            ctx.say(track.to_string());
+            let _ = ctx.say(track.to_string()).await;
             return Ok(())
         }
         else
@@ -32,6 +32,6 @@ pub async fn run(
             return Err("Unable to find track, try including the artist's name".into());
         }
     }
-    ctx.say("Unable to find track for unknown reasons");
+    let _ = ctx.say("Unable to find track for unknown reasons").await;
     Err("Unable to find track for unknown reasons".into())
 }

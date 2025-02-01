@@ -27,7 +27,7 @@ pub async fn run(
             name = generate_name();
         }
     }
-    ctx.say(name);
+    let _ = ctx.say(name).await;
     Ok(())
 }
 

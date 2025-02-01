@@ -1,8 +1,8 @@
 use crate::{Context, Error};
 
 #[poise::command(slash_command)]
-pub async fn run(ctx: Context<'_>) -> Result<(), Error> 
+pub async fn run(ctx: Context<'_>) -> Result<(), Error>
 {
-    ctx.say("https://github.com/connorcinna/RustyBlitzcrank#readme");
+    let _ = ctx.say("https://github.com/connorcinna/RustyBlitzcrank#readme").await;
     Ok(())
 }

@@ -17,7 +17,7 @@ pub async fn run(
     #[description = "The query to pass to Google's search API"] query: String
 ) -> Result<(), Error>
 {
-    ctx.defer();
+    let _ = ctx.defer().await;
     dotenv().ok();
     let client = reqwest::Client::new();
     //TODO: reformat this with reqwest params instead of stuffing it all in this url string
@@ -42,7 +42,7 @@ pub async fn run(
             {
                 if result_num == "0"
                 {
-                    no_results(ctx);
+                    let _ = no_results(ctx).await;
                     return Err(Box::new(std::fmt::Error));
                 }
             }
@@ -57,7 +57,7 @@ pub async fn run(
         .to_string();
 
     //right now assuming that ctx.say() will foil the ctx.defer() from earlier
-    ctx.say(format!("\n{}", &result[1..result.len()-1]));
+    let _ = ctx.say(format!("\n{}", &result[1..result.len()-1])).await;
     Ok(())
 }
 

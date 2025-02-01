@@ -34,11 +34,11 @@ pub async fn run
                 .unwrap()
                 .to_string();
             let url = &url[1..url.len()-1];
-            ctx.say(format!("\n{}", url));
+            let _ = ctx.say(format!("\n{}", url)).await;
             Ok(())
         },
         reqwest::StatusCode::UNAUTHORIZED => {
-            ctx.say("Error authorizing request");
+            let _ = ctx.say("Error authorizing request").await;
             Err(Error::from("Error authorizing request"))
         }
         _ => {

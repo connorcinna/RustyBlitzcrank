@@ -82,7 +82,7 @@ impl EventHandler for Handler
                     .expect("Expected MAIN_CHANNEL_ID in environment")
                     .parse()
                     .expect("MAIN_CHANNEL_ID must be an integer"));
-        begin_scheduled_jobs(channel_id, ctx);
+        let _ = begin_scheduled_jobs(channel_id, ctx).await;
     }
 }
 
@@ -91,7 +91,7 @@ async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Co
     let trump_inauguration_date: DateTime<Utc> = DateTime::parse_from_rfc2822("Mon, 20 Jan 2024 12:00:00 -0500").unwrap().to_utc();
     let schedule = JobScheduler::new().await?;
     let ctx_clone = ctx.clone();
-    schedule.add(
+    let _ = schedule.add(
         Job::new("0 0 14 * *  Fri", move |_uuid, _l| // 2PM UTC => 9AM EST
         {
             let http = &ctx_clone.http.clone();
@@ -99,8 +99,8 @@ async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Co
             let builder = serenity::CreateMessage::new().content("https://www.youtube.com/watch?v=WUyJ6N6FD9Q");
             let future = channel_id.send_message(http, builder);
             let _ = rt.block_on(future);
-        })?);
-    schedule.add(
+        })?).await;
+    let _ = schedule.add(
         Job::new("1 * * * * *", move |_uuid, _l|
         {
             let current_time = chrono::offset::Local::now().to_utc();
@@ -108,7 +108,7 @@ async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Co
             let data = breakdown_time(td);
             let activity_string = format!("{0} weeks, {1} days, {2} hours, and {3} seconds until Trump's presidency is over", data.weeks, data.days, data.hours, data.seconds);
             ctx.set_activity(Some(poise::serenity_prelude::ActivityData::custom(activity_string)));
-        })?);
+        })?).await;
     schedule.start().await?;
     return Ok(());
 }
@@ -141,29 +141,6 @@ fn breakdown_time(td: TimeDelta) -> TimeData
     }
 }
 
-////handle interactions that require doing some extra stuff other than just sending to the channel
-//async fn special_interaction(ctx: serenity::Context, interaction: &Interaction)
-//{
-//    if let Interaction::Command(command) = &interaction
-//    {
-//        let cmd_str = command.data.name.as_str();
-//        match cmd_str
-//        {
-//           "search" =>
-//           {
-//               if !commands::search::interaction(&ctx, command).await
-//               {
-//                   no_results(ctx, command).await;
-//               }
-//           },
-////           "ai" => commands::ai::interaction(ctx, command).await,
-//           "password" => commands::password::interaction(ctx, command.clone()).await,
-//           &_ => println!("Unimplemented"),
-//        }
-//    }
-//}
-
-
 
 #[tokio::main]
 //TODO: add test region so I can test function output without actually connecting to discord
@@ -179,7 +156,7 @@ async fn main()
         {
             commands: vec!
             [
-                commands::ai::send_prompt(),
+//                commands::ai::send_prompt(),
                 commands::freaky::run(),
                 commands::gif::run(),
                 commands::help::run(),
@@ -209,7 +186,7 @@ async fn main()
             },
             ..Default::default()
         })
-        .setup(|ctx, _ready, framework|
+        .setup(move |ctx, _ready, framework|
         {
             Box::pin(async move
             {
@@ -218,6 +195,7 @@ async fn main()
             })
         })
         .build();
+    println!("After building and registering commands");
     // Build our client.
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)

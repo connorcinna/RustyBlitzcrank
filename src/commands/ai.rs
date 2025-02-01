@@ -67,7 +67,7 @@ pub async fn send_prompt(
         .and_then(|v| { success = true; Ok(v) });
     if !success
     {
-        ctx.say("Unable to connect to LLM server, Connor's desktop probably isn't running").await;
+        let _ = ctx.say("Unable to connect to LLM server, Connor's desktop probably isn't running").await;
         return Ok(())
     }
     let res = res.unwrap();
@@ -87,17 +87,17 @@ pub async fn send_prompt(
                 .unwrap()
                 .to_string();
             println!("{:?}", json_result);
-            ctx.say(format_string(output));
+            let _ = ctx.say(format_string(output)).await;
             Ok(())
         },
         reqwest::StatusCode::UNAUTHORIZED =>
         {
-            ctx.say("Error authorizing request");
+            let _ = ctx.say("Error authorizing request").await;
             Ok(())
         }
         _ =>
         {
-            ctx.say(format!("error: got result {} from api", res.status().to_string()));
+            let _ = ctx.say(format!("error: got result {} from api", res.status().to_string())).await;
             Ok(())
         }
     }

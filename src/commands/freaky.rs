@@ -72,18 +72,6 @@ pub async fn run(
     {
         output.push(freaktionary(c));
     }
-    ctx.say(format!("{output}"));
+    let _ = ctx.say(format!("{output}")).await;
     Ok(())
 }
-
-//pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-//    command.name("freaky").description("get 𝓯𝓻𝓮𝓪𝓴𝔂 𝓿𝓻𝓸 ❤️")
-//    .create_option(|option| {
-//        option
-//            .name("text")
-//            .description("the text to freakify")
-//            .kind(CommandOptionType::String)
-//            .required(true)
-//        });
-//    return command;
-//}

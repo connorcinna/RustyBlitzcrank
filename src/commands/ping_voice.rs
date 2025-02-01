@@ -32,11 +32,11 @@ pub async fn run(
                 },
                 None => {},
             }
-            ctx.say(s);
+            let _ = ctx.say(s).await;
         }
         else
         {
-            ctx.say("No one detected in the voice channel");
+            let _ = ctx.say("No one detected in the voice channel").await;
         }
         Ok(())
 }

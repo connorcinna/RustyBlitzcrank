@@ -33,6 +33,6 @@ pub async fn run
         .unwrap()
         .to_string();
     println!("{}", result);
-    ctx.say(format!("\nhttps://www.youtube.com/watch?v={}", &result[1..result.len()-1]));
+    let _ = ctx.say(format!("\nhttps://www.youtube.com/watch?v={}", &result[1..result.len()-1])).await;
     Ok(())
 }
