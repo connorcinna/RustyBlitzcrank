@@ -1,51 +1,37 @@
-use rspotify::model::SearchResult;
-use serenity::builder::CreateApplicationCommand;
-use serenity::model::application::command::CommandOptionType;
-use serenity::model::application::interaction::application_command::{CommandDataOption, CommandDataOptionValue};
 use rspotify::{prelude::*, ClientCredsSpotify, Credentials};
+use rspotify::model::SearchResult;
+use crate::{Context, Error};
 
-pub async fn run(options: &[CommandDataOption]) -> String {
-    let option = options
-            .get(0)
-            .expect("Expected query option")
-            .resolved
-            .as_ref()
-            .expect("Expected query option");
+#[poise::command(slash_command)]
+pub async fn run(
+    ctx: Context<'_>,
+    #[description = "The query to be passed to Spotify's API"] query: String
+) -> Result<(), Error> {
 
-    if let CommandDataOptionValue::String(query) = option {
-    	let creds = Credentials::from_env().unwrap();
-		let spotify = ClientCredsSpotify::new(creds);
-		spotify.request_token().await.unwrap();
-		let song = spotify.search(
-			query,
-			rspotify::model::SearchType::Track,
-			None,
-			None,
-			None,
-			None)
-			.await
-			.expect("Expected SearchResult API response from Spotify");
-		if let SearchResult::Tracks(page) = song {
-			if let Some(track) = page.items[0].external_urls.get("spotify") {
-				return track.to_string();
-			}
-			else { 
-				return String::from("Unable to find track, try including the artist's name");
-			}
-		}
+    let creds = Credentials::from_env().unwrap();
+    let spotify = ClientCredsSpotify::new(creds);
+    spotify.request_token().await.unwrap();
+    let song = spotify.search(
+        &query,
+        rspotify::model::SearchType::Track,
+        None,
+        None,
+        None,
+        None)
+        .await
+        .expect("Expected SearchResult API response from Spotify");
+    if let SearchResult::Tracks(page) = song
+    {
+        if let Some(track) = page.items[0].external_urls.get("spotify")
+        {
+            ctx.say(track.to_string());
+            return Ok(())
+        }
+        else
+        {
+            return Err("Unable to find track, try including the artist's name".into());
+        }
     }
-    String::from("Unable to find track for unknown reasons because @isthistheblood is FUCKING STUPID")
-
+    ctx.say("Unable to find track for unknown reasons");
+    Err("Unable to find track for unknown reasons".into())
 }
-
-pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-    command.name("song").description("Search Spotify API for a song")
-    .create_option(|option| {
-        option
-            .name("word")
-            .description("Search Spotify API for a song")
-            .kind(CommandOptionType::String)
-            .required(true)
-        });
-    return command;
-} 

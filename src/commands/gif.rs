@@ -7,10 +7,12 @@ use reqwest;
 use crate::{Context, Error};
 
 #[poise::command(slash_command)]
-pub async fn run(
+pub async fn run
+(
     ctx: Context<'_>,
     #[description = "The query to be passed to Tenor's API"] query: String
-) -> Result<(), Error> {
+) -> Result<(), Error>
+{
     dotenv().ok();
     let query_string: String = format!("https://g.tenor.com/v1/search?q={}&key={}&limit=1", query, env::var("TENOR_KEY").expect("Expected a Tenor key"));
     let result_code = reqwest::get(query_string.clone())

@@ -7,11 +7,9 @@ use std::time::Duration;
 use std::env;
 use reqwest;
 use crate::common::constants::MAX_MSG_SZ;
-//use crate::Error;
-//use poise::Context;
 use crate::{Context, Error};
 
-//use poise::serenity_prelude as serenity;
+use poise::serenity_prelude as serenity;
 
 static TIMEOUT : u64 = 30;
 static SYSTEM_PROMPT : &str = "You are the robot Blitzcrank from League of Legends. Answer all questions in all cap letters";
@@ -71,7 +69,7 @@ pub async fn send_prompt(
         .and_then(|v| { success = true; Ok(v) });
     if !success
     {
-        ctx.say("Unable to connect to LLM server, Connor's desktop probably isn't running");
+        ctx.say("Unable to connect to LLM server, Connor's desktop probably isn't running").await;
         return Ok(())
     }
     let res = res.unwrap();

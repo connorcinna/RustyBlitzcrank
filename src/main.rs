@@ -12,7 +12,7 @@ use poise::serenity_prelude as serenity;
 use serenity::Message;
 use poise::async_trait;
 
-use crate::websites::{Website, LinkFix, fix_links};
+use crate::websites::{Website, LinkFix, fix_links, LINKS};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -40,15 +40,6 @@ struct TimeData
     seconds: i64,
 }
 
-const LINKS : [LinkFix; 5] =
-[
-    LinkFix {website: Website::Twitter, old_link: "https://twitter.com", new_link: "https://vxtwitter.com"},
-    LinkFix {website: Website::X, old_link: "https://x.com", new_link: "https://c.vxtwitter.com"},
-    LinkFix {website: Website::Tiktok, old_link: "https://www.tiktok.com", new_link: "https://vxtiktok.com"},
-    LinkFix {website: Website::Instagram, old_link: "https://www.instagram.com", new_link: "https://ddinstagram.com"},
-    LinkFix {website: Website::Reddit, old_link: "https://www.reddit.com", new_link: "https://vxreddit.com"},
-];
-
 
 #[async_trait]
 impl EventHandler for Handler
@@ -60,8 +51,8 @@ impl EventHandler for Handler
         {
             if msg.content.find(&link.old_link).is_some()
             {
-                println!("fixing link: {0}", link.old_link.clone());
-                fix_links(link.old_link.clone(), link.new_link.clone(), &msg, &ctx).await;
+                println!("fixing link: {0}", link.old_link);
+                fix_links(link.old_link, link.new_link, &msg, ctx.clone()).await;
             }
         }
     }
@@ -73,9 +64,10 @@ impl EventHandler for Handler
             let cmd_str = command.data.name.as_str();
             match cmd_str
             {
-                "search" => commands::search::interaction(ctx, command.clone()).await,
-                "ai" => commands::search::interaction(ctx, command.clone()).await,
-                "password" => commands::search::interaction(ctx, command.clone()).await,
+//                "search" => commands::search::interaction(ctx, command.clone()).await,
+//                TODO: fix ai interaction
+//                "ai" => commands::ai::interaction(ctx, command.clone()).await,
+                "password" => commands::password::interaction(ctx, command.clone()).await,
                 _ => {}
             };
         }
