@@ -6,11 +6,11 @@ use crate::{Context, Error, Message};
 extern crate dotenv;
 extern crate serde_json;
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "ping_voice")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "The channel to address"] channel: GuildChannel,
-    #[description = "Optional message to attach with the ping"] message: Option<Message>)
+    #[description = "Optional message to attach with the ping"] message: Option<String>)
     -> Result<(), Error>
 {
         let id = channel.id;
@@ -28,7 +28,7 @@ pub async fn run(
             {
                 Some(m) =>
                 {
-                    s.push_str(&m.content);
+                    s.push_str(m.as_str());
                 },
                 None => {},
             }

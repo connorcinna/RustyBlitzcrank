@@ -1,7 +1,7 @@
 use rand::Rng;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "roll")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "Ceiling for the random number generation"] ceiling: i64,
@@ -12,7 +12,7 @@ pub async fn run(
     let roll =
     {
         let mut random = rand::rng();
-        random.random_range(0..ceiling)
+        random.random_range(1..ceiling)
     };
     let _ = ctx.say(format!("{}", roll)).await;
     Ok(())

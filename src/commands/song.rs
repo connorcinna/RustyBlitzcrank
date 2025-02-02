@@ -2,7 +2,7 @@ use rspotify::{prelude::*, ClientCredsSpotify, Credentials};
 use rspotify::model::SearchResult;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "song")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "The query to be passed to Spotify's API"] query: String

@@ -6,7 +6,7 @@ use std::env;
 use reqwest;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "gif")]
 pub async fn run
 (
     ctx: Context<'_>,

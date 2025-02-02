@@ -6,27 +6,24 @@ extern crate dotenv;
 use std::env;
 use dotenv::dotenv;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use chrono::{DateTime, Utc, TimeDelta};
-use poise::serenity_prelude::EventHandler;
+use chrono::{DateTime, TimeDelta};
 use poise::serenity_prelude as serenity;
 use serenity::Message;
-use serenity::model::gateway::GatewayIntents;
-use poise::async_trait;
+use serenity::model::gateway::{GatewayIntents, Ready};
 
 use crate::websites::{fix_links, LINKS};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-struct Handler;
 struct Data {}
 //TODO move all this extra date and struct stuff somewhere else
-const YEAR_IN_SECONDS: f64 = 60.0 * 60.0 * 24.0 * (365.0 + 0.25);
-const MONTH_IN_SECONDS: f64 = YEAR_IN_SECONDS / 12.0;
-const WEEK_IN_SECONDS: f64 = MONTH_IN_SECONDS / 4.345;
-const DAY_IN_SECONDS: f64 = WEEK_IN_SECONDS / 7.0;
-const HOUR_IN_SECONDS: f64 = DAY_IN_SECONDS / 24.0;
-const MIN_IN_SECONDS: f64 = HOUR_IN_SECONDS / 60.0;
+const YEAR_IN_SECONDS: i64 = 60 * 60 * 24 * 365;
+const MONTH_IN_SECONDS: i64 = YEAR_IN_SECONDS / 12;
+const WEEK_IN_SECONDS: i64 = MONTH_IN_SECONDS / 4;
+const DAY_IN_SECONDS: i64 = WEEK_IN_SECONDS / 7;
+const HOUR_IN_SECONDS: i64 = DAY_IN_SECONDS / 24;
+const MIN_IN_SECONDS: i64 = HOUR_IN_SECONDS / 60;
 
 //simple struct to hold break down of TimeDelta
 #[derive(Debug)]
@@ -42,53 +39,9 @@ struct TimeData
 }
 
 
-#[async_trait]
-impl EventHandler for Handler
-{
-    async fn message(&self, ctx: serenity::Context, msg: Message)
-    {
-
-        for link in LINKS
-        {
-            if msg.content.find(&link.old_link).is_some()
-            {
-                println!("fixing link: {0}", link.old_link);
-                fix_links(link.old_link, link.new_link, &msg, ctx.clone()).await;
-            }
-        }
-    }
-
-    async fn interaction_create(&self, ctx: serenity::Context, interaction: serenity::Interaction)
-    {
-        if let serenity::Interaction::Command(command) = &interaction
-        {
-            let cmd_str = command.data.name.as_str();
-            match cmd_str
-            {
-//                "search" => commands::search::interaction(ctx, command.clone()).await,
-//                TODO: fix ai interaction
-//                "ai" => commands::ai::interaction(ctx, command.clone()).await,
-                "password" => commands::password::interaction(ctx, command.clone()).await,
-                _ => {}
-            };
-        }
-    }
-
-    async fn ready(&self, ctx: serenity::Context, ready: serenity::Ready)
-    {
-        println!("{} is connected!", ready.user.name);
-        let channel_id = serenity::ChannelId::new(
-                    env::var("MAIN_CHANNEL_ID")
-                    .expect("Expected MAIN_CHANNEL_ID in environment")
-                    .parse()
-                    .expect("MAIN_CHANNEL_ID must be an integer"));
-        let _ = begin_scheduled_jobs(channel_id, ctx).await;
-    }
-}
-
 async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Context) -> Result<(), Error>
 {
-    let trump_inauguration_date: DateTime<Utc> = DateTime::parse_from_rfc2822("Mon, 20 Jan 2024 12:00:00 -0500").unwrap().to_utc();
+    let trumps_last_day = DateTime::parse_from_rfc2822("Sat, 20 Jan 2029 12:00:00 -0500").unwrap().to_utc();
     let schedule = JobScheduler::new().await?;
     let ctx_clone = ctx.clone();
     let _ = schedule.add(
@@ -100,35 +53,43 @@ async fn begin_scheduled_jobs(channel_id: serenity::ChannelId, ctx: serenity::Co
             let future = channel_id.send_message(http, builder);
             let _ = rt.block_on(future);
         })?).await;
+    //run every second
     let _ = schedule.add(
-        Job::new("1 * * * * *", move |_uuid, _l|
+        Job::new("* * * * * *", move |_uuid, _l|
         {
             let current_time = chrono::offset::Local::now().to_utc();
-            let td = current_time - trump_inauguration_date;
+            let td = trumps_last_day - current_time;
             let data = breakdown_time(td);
-            let activity_string = format!("{0} weeks, {1} days, {2} hours, and {3} seconds until Trump's presidency is over", data.weeks, data.days, data.hours, data.seconds);
+            let activity_string = format!("{0} years, {1} months, {2} weeks, {3} days, {4} hours, {5} minutes, and {6} seconds until Trump's presidency is over",
+                data.years,
+                data.months,
+                data.weeks,
+                data.days,
+                data.hours,
+                data.minutes,
+                data.seconds);
             ctx.set_activity(Some(poise::serenity_prelude::ActivityData::custom(activity_string)));
         })?).await;
     schedule.start().await?;
-    return Ok(());
+    Ok(())
 }
 
 //TODO: put this in Utility file
 fn breakdown_time(td: TimeDelta) -> TimeData
 {
     let mut seconds = td.num_seconds();
-    let years = seconds % YEAR_IN_SECONDS as i64;
-    seconds -= YEAR_IN_SECONDS as i64 * years;
-    let months = seconds % MONTH_IN_SECONDS as i64;
-    seconds -= MONTH_IN_SECONDS as i64 * months;
-    let weeks = seconds % WEEK_IN_SECONDS as i64;
-    seconds -= WEEK_IN_SECONDS as i64 * weeks;
-    let days = seconds % DAY_IN_SECONDS as i64;
-    seconds -= DAY_IN_SECONDS as i64 * days;
-    let hours = seconds % HOUR_IN_SECONDS as i64;
-    seconds -= HOUR_IN_SECONDS as i64 * hours;
-    let minutes = seconds % MIN_IN_SECONDS as i64;
-    seconds -= MIN_IN_SECONDS as i64 * minutes;
+    let years = seconds / YEAR_IN_SECONDS;
+    seconds -= YEAR_IN_SECONDS * years;
+    let months = seconds / MONTH_IN_SECONDS;
+    seconds -= MONTH_IN_SECONDS * months;
+    let weeks = seconds / WEEK_IN_SECONDS;
+    seconds -= WEEK_IN_SECONDS * weeks;
+    let days = seconds / DAY_IN_SECONDS;
+    seconds -= DAY_IN_SECONDS * days;
+    let hours = seconds / HOUR_IN_SECONDS;
+    seconds -= HOUR_IN_SECONDS * hours;
+    let minutes = seconds / MIN_IN_SECONDS;
+    seconds -= MIN_IN_SECONDS * minutes;
     TimeData
     {
         years,
@@ -141,13 +102,63 @@ fn breakdown_time(td: TimeDelta) -> TimeData
     }
 }
 
+#[poise::command(prefix_command)]
+async fn register(ctx: Context<'_>) -> Result<(), Error> {
+    poise::builtins::register_application_commands_buttons(ctx).await?;
+    Ok(())
+}
 
-#[tokio::main]
+async fn event_handler
+(
+    ctx: &serenity::Context,
+    event: &serenity::FullEvent,
+    _framework: poise::FrameworkContext<'_, Data, Error>,
+    _data: &Data,
+) -> Result<(), Error>
+{
+    match event
+    {
+        serenity::FullEvent::Ready { data_about_bot, .. } =>
+        {
+            ready(ctx, data_about_bot).await;
+        }
+        serenity::FullEvent::Message { new_message } =>
+        {
+            message(ctx, new_message).await;
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+async fn message(ctx: &serenity::Context, msg: &Message)
+    {
+        for link in LINKS
+        {
+            if msg.content.find(&link.old_link).is_some()
+            {
+                println!("fixing link: {0}", link.old_link);
+                fix_links(link.old_link, link.new_link, &msg, ctx.clone()).await;
+            }
+        }
+    }
+
+async fn ready(ctx: &serenity::Context, ready: &Ready)
+{
+    println!("{} is connected!", ready.user.name);
+    let channel_id = serenity::ChannelId::new(
+                env::var("MAIN_CHANNEL_ID")
+                .expect("Expected MAIN_CHANNEL_ID in environment")
+                .parse()
+                .expect("MAIN_CHANNEL_ID must be an integer"));
+    let _ = begin_scheduled_jobs(channel_id, ctx.clone()).await;
+}
+
 //TODO: add test region so I can test function output without actually connecting to discord
+#[tokio::main]
 async fn main()
 {
     dotenv().ok();
-    // Configure the client with the Discord bot token in the environment.
     let token = env::var("CLIENT_TOKEN").expect("Expected a token in the environment");
     let intents = serenity::GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT | GatewayIntents::GUILD_MESSAGES;
 
@@ -156,7 +167,7 @@ async fn main()
         {
             commands: vec!
             [
-//                commands::ai::send_prompt(),
+                register(),
                 commands::freaky::run(),
                 commands::gif::run(),
                 commands::help::run(),
@@ -169,6 +180,10 @@ async fn main()
                 commands::song::run(),
                 commands::vid::run(),
             ],
+            event_handler: |ctx, event, framework, data|
+            {
+                Box::pin(event_handler(ctx, event, framework, data))
+            },
             on_error: |error|
             {
                 Box::pin(async move
@@ -195,8 +210,6 @@ async fn main()
             })
         })
         .build();
-    println!("After building and registering commands");
-    // Build our client.
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
         .await;

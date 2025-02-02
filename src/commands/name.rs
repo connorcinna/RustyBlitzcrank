@@ -5,17 +5,19 @@ use serde_json;
 pub static _SIZE : usize = 16;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "name")]
 pub async fn run(
     ctx: Context<'_>,
-    #[description = "The number of names you wish to generate"] num: Option<u32>) -> Result<(), Error>
+    #[description = "The number of names you wish to generate"] num: Option<i64>) -> Result<(), Error>
 {
+    let _ = ctx.defer().await;
     let mut name: String = String::new();
     match num
     {
         //if a number was passed in
         Some(num) =>
         {
+            println!("Matched on num {0}", num);
             for _ in 0..num
             {
                 name += &generate_name();
@@ -24,6 +26,7 @@ pub async fn run(
         }
         None =>
         {
+            println!("Matched on None for num");
             name = generate_name();
         }
     }

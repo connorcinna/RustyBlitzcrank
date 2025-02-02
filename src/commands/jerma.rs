@@ -1,6 +1,6 @@
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "jerma")]
 pub async fn run(ctx: Context<'_>) -> Result<(), Error>
 {
     let _ = ctx.say("⡯⡯⡾⠝⠘⠀ ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢊⠘⡮⣣⠪⠢⡑⡌

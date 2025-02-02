@@ -11,7 +11,7 @@ use crate::{Error, Context};
 
 //pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send>>;
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "search")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "The query to pass to Google's search API"] query: String

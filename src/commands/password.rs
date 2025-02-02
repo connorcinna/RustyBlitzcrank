@@ -2,19 +2,19 @@ use rand::prelude::*;
 use serde_json;
 
 use crate::{Context, Error};
-use poise::serenity_prelude::{CommandInteraction, CreateMessage, CreateInteractionResponse, CreateInteractionResponseMessage};
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::CreateMessage;
 use crate::common::helpers::coinflip;
 
 //TODO: refactor this and name.rs to some common file
 //TODO: really need to read the json into string and share it by reference without cloning, would
 //be way more efficient
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "password")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "Number of characters in the password"] size: i64
 ) -> Result<(), Error>
 {
+    let _ = ctx.defer().await;
     let json: serde_json::Value;
     let s: String;
     let json_file = std::fs::read_to_string("./resources/words.json");
@@ -38,11 +38,19 @@ pub async fn run(
     let dm = ctx.author().direct_message(&ctx, builder).await;
     match dm
     {
-        Ok(_) => println!("Successfully sent dm to {} with new password", ctx.author().name),
-        Err(e) => println!("Error sending dm to {} : {}", ctx.author().name, e)
+        Ok(_) =>
+        {
+            println!("Successfully sent dm to {} with new password", ctx.author().name);
+            let _ = ctx.say("Sent, check your direct messages").await;
+            return Ok(());
+        }
+        Err(e) =>
+        {
+            println!("Error sending dm to {} : {}", ctx.author().name, e);
+            let _ = ctx.say("Unable to send DM").await;
+            return Err("Unable to send DM".into());
+        }
     }
-
-    Ok(())
 }
 
 pub fn random_word(json: serde_json::Value, word_type: String) -> String
@@ -150,11 +158,4 @@ pub fn generate_format_two(json: serde_json::value::Value, noun: String, size: i
         ret.push_str(&rng.random_range(0..10).to_string());
     }
     return String::from(ret);
-}
-
-pub async fn interaction(ctx: serenity::Context, command: CommandInteraction)
-{
-    let data = CreateInteractionResponseMessage::new().content("Sent, check your direct messages");
-    let builder = CreateInteractionResponse::Message(data);
-    command.create_response(&ctx.http, builder).await.unwrap();
 }

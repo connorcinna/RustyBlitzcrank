@@ -61,7 +61,7 @@ pub fn freaktionary(c: char) -> char
     }
 }
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "freaky")]
 pub async fn run(
     ctx: Context<'_>,
     #[description = "get 𝓯𝓻𝓮𝓪𝓴𝔂 𝓿𝓻𝓸 ❤️"] text: String

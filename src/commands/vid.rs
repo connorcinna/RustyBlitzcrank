@@ -6,7 +6,7 @@ use reqwest;
 use std::env;
 use crate::{Context, Error};
 
-#[poise::command(slash_command)]
+#[poise::command(slash_command, rename = "vid")]
 pub async fn run
 (
     ctx: Context<'_>,
