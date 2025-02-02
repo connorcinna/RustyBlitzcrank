@@ -4,7 +4,18 @@ use dotenv::dotenv;
 use serde_json::Value;
 use std::env;
 use reqwest;
+use std::collections::HashMap;
 use crate::{Context, Error};
+
+fn build_url(query: String) -> Result<reqwest::Url, Error>
+{
+    let key = env::var("TENOR_KEY").expect("Did not find TENOR_KEY in environment");
+    let mut params = HashMap::new();
+    params.insert("q", query.as_str());
+    params.insert("key", key.as_str());
+    params.insert("limit", "1");
+    Ok(reqwest::Url::parse_with_params("https://g.tenor.com/v1/search?", params.clone()).expect("Unable to parse URL"))
+}
 
 #[poise::command(slash_command, rename = "gif")]
 pub async fn run
@@ -14,14 +25,14 @@ pub async fn run
 ) -> Result<(), Error>
 {
     dotenv().ok();
-    let query_string: String = format!("https://g.tenor.com/v1/search?q={}&key={}&limit=1", query, env::var("TENOR_KEY").expect("Expected a Tenor key"));
-    let result_code = reqwest::get(query_string.clone())
+    let url = build_url(query).unwrap();
+    let result_code = reqwest::get(url.clone())
         .await
         .unwrap()
         .status();
     match result_code {
         reqwest::StatusCode::OK => {
-            let reqwest_result = reqwest::get(query_string.clone())
+            let reqwest_result = reqwest::get(url.clone())
                 .await
                 .unwrap()
                 .text()

@@ -1,15 +1,29 @@
 extern crate dotenv;
 extern crate serde_json;
+use std::env;
+use dotenv::dotenv;
 use poise::serenity_prelude as serenity;
 use serenity::builder::{CreateAttachment, CreateMessage};
-use dotenv::dotenv;
 use serde_json::Value;
+use std::collections::HashMap;
 use reqwest;
 use tokio::fs::File;
-
 use crate::{Error, Context};
 
-//pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send>>;
+fn build_url(query: String) -> Result<reqwest::Url, Error>
+{
+    let key = env::var("GOOGLE_PUBLIC_KEY").expect("Did not find GOOGLE_PUBLIC_KEY in environment");
+    let cx = env::var("GOOGLE_CX").expect("Did not find GOOGLE_CX in environment");
+    let mut params = HashMap::new();
+    params.insert("key", key.as_str());
+    params.insert("cx", cx.as_str());
+    params.insert("q", query.as_str());
+    params.insert("searchType", "image");
+    params.insert("fileType", "jpg");
+    params.insert("alt", "json");
+    params.insert("num", "1");
+    Ok(reqwest::Url::parse_with_params("https://www.googleapis.com/customsearch/v1?", params.clone()).expect("Unable to parse URL"))
+}
 
 #[poise::command(slash_command, rename = "search")]
 pub async fn run(
@@ -19,10 +33,8 @@ pub async fn run(
 {
     let _ = ctx.defer().await;
     dotenv().ok();
+    let url = build_url(query).unwrap();
     let client = reqwest::Client::new();
-    //TODO: reformat this with reqwest params instead of stuffing it all in this url string
-    //also i just realized the key is exposed ?!
-    let url = format!("https://www.googleapis.com/customsearch/v1?key=AIzaSyCDvi2YxuEsz5uxR1e1h6gq2iF9Ly_WPZU&cx=71446e05228ee4314&q={}&searchType=image&fileType=jpg&alt=json&num=1", query);
     let response = client
         .get(url)
         .send()
@@ -38,16 +50,15 @@ pub async fn run(
         .and_then(|value| value.get(0))
         .and_then(|value| value.get("totalResults"))
         {
-            Some(result_num) =>
+            Some(num_results) =>
             {
-                if result_num == "0"
+                if num_results == "0"
                 {
-                    let _ = no_results(ctx).await;
-                    return Err(Box::new(std::fmt::Error));
+                    no_results(ctx).await?
                 }
             }
             None => {
-                return Err(Box::new(std::fmt::Error));
+                no_results(ctx).await?
             }
     }
     let result = json_result.get("items")
@@ -55,8 +66,6 @@ pub async fn run(
         .and_then(|value| value.get("link"))
         .unwrap()
         .to_string();
-
-    //right now assuming that ctx.say() will foil the ctx.defer() from earlier
     let _ = ctx.say(format!("\n{}", &result[1..result.len()-1])).await;
     Ok(())
 }
@@ -71,10 +80,7 @@ async fn no_results(ctx: Context<'_>) -> Result<(), Error>
     [
         CreateAttachment::file(&img_file, "lol.png").await?,
     ];
-    //empty message closure to satisfy function
     let builder = CreateMessage::new().content("");
     let _ = channel_id.send_files(&ctx.http(), files, builder).await;
-    Ok(())
-//    //get rid of the "bot is thinking..." message
-//    command.delete_original_interaction_response(&ctx.http).await.unwrap();
+    Err("No results found".into())
 }
