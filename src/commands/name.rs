@@ -3,7 +3,13 @@ use crate::common::helpers::coinflip;
 use rand::Rng;
 use serde_json;
 pub static _SIZE : usize = 16;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
+use poise::reply::CreateReply;
+use std::path::Path;
+use poise::serenity_prelude as serenity;
 use crate::{Context, Error};
+
 
 #[poise::command(slash_command, rename = "name")]
 pub async fn run(
@@ -12,30 +18,36 @@ pub async fn run(
 {
     let _ = ctx.defer().await;
     let mut name: String = String::new();
+    let json = open_json("resources/words.json").unwrap();
     match num
     {
-        //if a number was passed in
         Some(num) =>
         {
-            println!("Matched on num {0}", num);
             for _ in 0..num
             {
-                name += &generate_name();
+                name += &generate_name(&json);
                 name += "\n";
             }
         }
         None =>
         {
-            println!("Matched on None for num");
-            name = generate_name();
+            name = generate_name(&json);
         }
     }
-    let _ = ctx.say(name).await;
+    if name.chars().count() >= 2000
+    {
+        //create .txt file embed with the string
+        let _ = create_file_embed(ctx, &name).await?;
+    }
+    else
+    {
+        let _ = ctx.say(name).await;
+    }
     Ok(())
 }
 
  //format: noun + verb + er + random numbers
-pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> String
+pub fn generate_format_one(json: &serde_json::value::Value, noun: String) -> String
 {
     let verb: String = random_word(json.clone(), String::from("verbs").clone());
     let mut rng = rand::rng();
@@ -66,7 +78,7 @@ pub fn generate_format_one(json: serde_json::value::Value, noun: String) -> Stri
 }
 
 //format: adjective + noun + random numbers
-pub fn generate_format_two(json: serde_json::value::Value, noun: String) -> String
+pub fn generate_format_two(json: &serde_json::value::Value, noun: String) -> String
 {
     let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
     let mut rng = rand::rng();
@@ -78,10 +90,9 @@ pub fn generate_format_two(json: serde_json::value::Value, noun: String) -> Stri
     return String::from(ret);
 }
 
-pub fn generate_name() -> String
+pub fn generate_name(json: &serde_json::value::Value) -> String
 {
     let s: String;
-    let json = open_json("resources/words.json");
     let noun: String = random_word(json.clone(), String::from("nouns").clone());
     if coinflip()
     {
@@ -94,7 +105,7 @@ pub fn generate_name() -> String
     s
 }
 
-pub fn open_json(path: &str) -> serde_json::value::Value
+pub fn open_json(path: &str) -> Result<serde_json::value::Value, Error>
 {
     let json: serde_json::Value;
     let json_string = std::fs::read_to_string(path);
@@ -102,9 +113,9 @@ pub fn open_json(path: &str) -> serde_json::value::Value
     {
         Ok(json_string) => json = serde_json::from_str::<serde_json::Value>(&json_string)
             .expect("unable to convert file to json"),
-        Err(e) => panic!("unable to find json file: {}", e),
+        Err(e) => return Err(Box::new(e)),
     }
-    return json;
+    return Ok(json);
 }
 
 pub fn random_word(json: serde_json::Value, word_type: String) -> String
@@ -125,4 +136,17 @@ pub fn random_word(json: serde_json::Value, word_type: String) -> String
         }
     }
     String::from(&word[1..word.len()-1])
+}
+
+async fn create_file_embed(ctx: Context<'_>, name: &str) -> Result<(), Error>
+{
+    let file_name = "/tmp/names.txt";
+    let mut file = File::create(file_name).await?;
+    file.write_all(name.as_bytes()).await?;
+    let attachment = serenity::CreateAttachment::path(Path::new(file_name)).await?;
+    let _ = ctx.send(CreateReply::default()
+        .attachment(attachment))
+        .await?;
+    Ok(())
+
 }
