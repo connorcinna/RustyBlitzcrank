@@ -3,6 +3,7 @@ use crate::common::helpers::coinflip;
 use rand::Rng;
 use serde_json;
 pub static _SIZE : usize = 16;
+pub static MAX_DISCORD_MSG_SZ: usize = 2000;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use poise::reply::CreateReply;
@@ -23,7 +24,7 @@ pub async fn run(
     {
         Some(num) =>
         {
-            for _ in 0..num
+            for i in 0..num
             {
                 name += &generate_name(&json);
                 name += "\n";
@@ -34,10 +35,10 @@ pub async fn run(
             name = generate_name(&json);
         }
     }
-    if name.chars().count() >= 2000
+    if name.chars().count() >= MAX_DISCORD_MSG_SZ
     {
         //create .txt file embed with the string
-        let _ = create_file_embed(ctx, &name).await?;
+        create_file_embed(ctx, &name).await?;
     }
     else
     {
@@ -49,12 +50,16 @@ pub async fn run(
  //format: noun + verb + er + random numbers
 pub fn generate_format_one(json: &serde_json::value::Value, noun: String) -> String
 {
-    let verb: String = random_word(json.clone(), String::from("verbs").clone());
+    let verb: String = random_word(&json, String::from("verbs").clone());
     let mut rng = rand::rng();
     let mut ret : String;
     let last_chars =
     {
-        let split_pos = verb.char_indices().nth_back(2).unwrap().0;
+        let split_pos = verb
+            .char_indices()
+            .nth_back(2)
+            .unwrap()
+            .0;
         &verb[..split_pos]
     };
     if last_chars == "er"
@@ -80,7 +85,7 @@ pub fn generate_format_one(json: &serde_json::value::Value, noun: String) -> Str
 //format: adjective + noun + random numbers
 pub fn generate_format_two(json: &serde_json::value::Value, noun: String) -> String
 {
-    let adjective: String = random_word(json.clone(), String::from("adjectives").clone());
+    let adjective: String = random_word(&json, String::from("adjectives").clone());
     let mut rng = rand::rng();
     let mut ret = format!("{}{}", adjective, noun);
     while ret.len() < _SIZE as usize
@@ -93,7 +98,7 @@ pub fn generate_format_two(json: &serde_json::value::Value, noun: String) -> Str
 pub fn generate_name(json: &serde_json::value::Value) -> String
 {
     let s: String;
-    let noun: String = random_word(json.clone(), String::from("nouns").clone());
+    let noun: String = random_word(&json, String::from("nouns").clone());
     if coinflip()
     {
         s = generate_format_one(json, noun);
@@ -118,7 +123,7 @@ pub fn open_json(path: &str) -> Result<serde_json::value::Value, Error>
     return Ok(json);
 }
 
-pub fn random_word(json: serde_json::Value, word_type: String) -> String
+pub fn random_word(json: &serde_json::Value, word_type: String) -> String
 {
     let word: String;
     let word_obj = json.get(&word_type);
@@ -148,5 +153,4 @@ async fn create_file_embed(ctx: Context<'_>, name: &str) -> Result<(), Error>
         .attachment(attachment))
         .await?;
     Ok(())
-
 }
