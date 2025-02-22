@@ -20,8 +20,6 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    # Runs a single command using the runners shell
-    - name: Pull
-      run: git pull origin master https://github.com/connorcinna/RustyBlitzcrank.git
-    - name: Run
-      run: systemctl restart blitzcrank.service
+     - uses: actions/checkout@v3
+     - name: Run
+       run: systemctl restart blitzcrank.service
