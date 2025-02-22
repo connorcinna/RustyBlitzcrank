@@ -22,7 +22,7 @@ jobs:
     steps:
      - uses: actions/checkout@v4
      - name: Checkout
-       run: echo /home/connor/projects/RustyBlitzcrank/.env > .env
+       run: cat /home/connor/projects/RustyBlitzcrank/.env > .env
 
      - name: Run
        run: cargo run
