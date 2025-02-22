@@ -16,8 +16,8 @@ jobs:
     environment: production
     steps:
      - name: Checkout
-     - uses: actions/checkout@v4
-     - run: cat /home/connor/projects/RustyBlitzcrank/.env > .env
+       uses: actions/checkout@v4
+       run: cat /home/connor/projects/RustyBlitzcrank/.env > .env
 
      - name: Run
-     - run: cargo run
+       run: cargo run
