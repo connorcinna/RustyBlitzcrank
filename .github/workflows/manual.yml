@@ -21,5 +21,8 @@ jobs:
      - name: Copy environment variables
        run: cat /home/connor/projects/RustyBlitzcrank/.env > .env
 
+     - name: Build
+       run: cargo build release
+
      - name: Run
-       run: RUNNER_TRACKING_ID="" && (nohup cargo run &)
+       run: RUNNER_TRACKING_ID="" && (nohup ./target/release/rusty_blitzcrank &)
