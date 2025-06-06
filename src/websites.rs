@@ -6,7 +6,7 @@ pub const LINKS : [LinkFix; 5] =
     LinkFix {website: Website::Twitter, old_link: "https://twitter.com", new_link: "https://vxtwitter.com"},
     LinkFix {website: Website::X, old_link: "https://x.com", new_link: "https://c.vxtwitter.com"},
     LinkFix {website: Website::Tiktok, old_link: "https://www.tiktok.com", new_link: "https://vxtiktok.com"},
-    LinkFix {website: Website::Instagram, old_link: "https://www.instagram.com", new_link: "https://ddinstagram.com"},
+    LinkFix {website: Website::Instagram, old_link: "https://www.instagram.com", new_link: "https://instagramez.com"},
     LinkFix {website: Website::Reddit, old_link: "https://www.reddit.com", new_link: "https://vxreddit.com"},
 ];
 
