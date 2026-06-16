@@ -19,7 +19,7 @@ jobs:
        uses: actions/checkout@v5
 
      - name: Copy environment variables
-       run: cat /home/connor/projects/RustyBlitzcrank/.env > .env
+       run: cat /home/piltover/RustyBlitzcrank/.env > .env
 
      - name: Build
        run: cargo build --release
