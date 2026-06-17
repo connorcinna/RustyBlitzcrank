@@ -1,6 +1,6 @@
 mod commands;
 mod common;
-mod websites;
+mod linkfixer;
 extern crate dotenv;
 
 use std::env;
@@ -11,7 +11,7 @@ use poise::serenity_prelude as serenity;
 use serenity::Message;
 use serenity::model::gateway::{GatewayIntents, Ready};
 
-use crate::websites::{fix_links, LINKS};
+use crate::linkfixer::{fix_links, LINKS};
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
